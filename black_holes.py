@@ -10,9 +10,9 @@ class Black_hole:
         mass : float
             mass of black hole
         position : list[float]
-            position vector of black hole
+            position vector of black hole in kpc
         velocity : list[float])
-            velocity vector of black hole
+            velocity vector of black hole in km/s
         """
         self.mass = mass
         self.position = np.array(position)
