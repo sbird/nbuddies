@@ -13,9 +13,7 @@ def recalculate_acceleration_due_to_gravity(data: list[Black_hole]):
         BH_i.acceleration = np.zeros(3)
         for BH_j in data:
             if BH_i == BH_j:
-                print("pass")
                 continue
-            print(BH_i.mass, BH_j.mass)
             BH_i.acceleration += calculate_acceleration_from_one_body(BH_i, BH_j)
 
 def calculate_acceleration_from_one_body(target: Black_hole, source: Black_hole):
