@@ -17,9 +17,9 @@ def recalculate_acceleration_due_to_gravity(data: list[Black_hole]):
         for BH_j in data:
             if BH_i == BH_j:
                 continue
-            BH_i.acceleration += calculate_acceleration_from_one_body(BH_i, BH_j)
+            BH_i.acceleration += _calculate_acceleration_from_one_body(BH_i, BH_j)
 
-def calculate_acceleration_from_one_body(target: Black_hole, source: Black_hole):
+def _calculate_acceleration_from_one_body(target: Black_hole, source: Black_hole):
     """
     Calculate the accelation of one black hole due to another. Note the units of acceleration are km^2 / kpc s^2
 
@@ -31,10 +31,10 @@ def calculate_acceleration_from_one_body(target: Black_hole, source: Black_hole)
         The black hole whose gravity is the source of the acceleration
     """
     displacement = source.position - target.position
-    accel = GG * source.mass * displacement / (vector_magnitude(displacement) ** 3)
+    accel = GG * source.mass * displacement / (_vector_magnitude(displacement) ** 3)
     return accel / KM_PER_KPC
 
-def vector_magnitude(vec: list[float]):
+def _vector_magnitude(vec: list[float]):
     """
     Computes magnitude of a vector.
 
