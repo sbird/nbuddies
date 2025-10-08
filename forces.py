@@ -18,7 +18,7 @@ def recalculate_acceleration_due_to_gravity(data: list[Black_hole]):
 
 def calculate_acceleration_from_one_body(target: Black_hole, source: Black_hole):
     """
-    Calculate the accelation of one black hole due to another
+    Calculate the accelation of one black hole due to another. Note the units of acceleration are km^2 / kpc s^2
 
     Parameters
     ----------
