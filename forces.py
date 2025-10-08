@@ -1,5 +1,8 @@
 from black_holes import *
 
+KM_PER_KPC = 30856776000000000.0 # number of km in kpc
+GG = 4.301e-6 # Newton constant km^2 kpc / Msun s^2
+
 def recalculate_acceleration_due_to_gravity(data: list[Black_hole]):
     """
     Recalculates accelerations of all black holes
@@ -27,9 +30,9 @@ def calculate_acceleration_from_one_body(target: Black_hole, source: Black_hole)
     source : Black_hole
         The black hole whose gravity is the source of the acceleration
     """
-    GG = 4.301e-6 # Newton constant km^2 kpc / Msun s^2
     displacement = source.position - target.position
-    return GG * source.mass * displacement / (vector_magnitude(displacement) ** 3)
+    accel = GG * source.mass * displacement / (vector_magnitude(displacement) ** 3)
+    return accel / KM_PER_KPC
 
 def vector_magnitude(vec: list[float]):
     """
