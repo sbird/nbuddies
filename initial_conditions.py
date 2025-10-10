@@ -18,7 +18,7 @@ def calculate_box_size(distance, n_blackholes):
 
 path_to_save_pkl_file = "/Users/apiratn1/Documents/2025_Courses/Computational_Astrophysics/test-initial-conditions"
     
-def (n_blackholes, box_size, mass_range = (3, 10**11), vel_scale_kms = 100): # a function to create n_blackholes with masses, positions, and velocities, box_size in kpc (side length of the cubic box)
+def generate_initial_conditions(n_blackholes, box_size, mass_range = (3, 10**11), vel_scale_kms = 100): # a function to create n_blackholes with masses, positions, and velocities, box_size in kpc (side length of the cubic box)
     #generate initial coniditions for N-body black hole simulation
 
     # generate masses from a uniform distribution
