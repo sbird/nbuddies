@@ -1,7 +1,7 @@
 import numpy as np 
 from pint import UnitRegistry
 from BlackHoles_Struct import BlackHole
-from initial_conditions import generate_initial_conditions
+# from initial_conditions import generate_initial_conditions
 from evolution import simulation
 import pickle
 import matplotlib.pyplot as plt
@@ -321,7 +321,7 @@ with open('BH_data_ic.pkl', 'rb') as f:
     BH_data_ic = pickle.load(f)
 
 # The below code is the test section for generating analytical dataset
-generate_analy_dataset = 1
+generate_analy_dataset = 0
 
 while generate_analy_dataset:
     # Based on the simulation and the example
@@ -382,10 +382,10 @@ while generate_analy_dataset:
 
 
 ICS_path = "./BH_data_ic.pkl"
-output_dir = "./data_test/"
+output_dir = "./data/"
 
 # Implement the evolution code here
-# simulation( ICS_path, output_dir, 500, 10, 20)
+simulation( ICS_path, output_dir, 500, 10, 20)
 
 # Plot a circle with radius R, center at COM based on the case
 
@@ -406,14 +406,15 @@ def init():
 
 def update(frame):
     # Load the corresponding snapshot
-    with open( output_dir + 'BH_data_%03d.pkl' % frame, 'rb') as f:
+    with open( output_dir + 'data_batch' + str(frame) + '.pkl', 'rb') as f:
+    # with open( output_dir + 'BH_data_%03d.pkl' % frame, 'rb') as f:
         BH_data_final = pickle.load(f)
 
     xdata = []
     ydata = []
-    for i in range(len(BH_data_final)):
-        xdata.append(BH_data_final[i].position[0])
-        ydata.append(BH_data_final[i].position[1])
+    for i in range(len(BH_data_final[-1])):
+        xdata.append(BH_data_final[-1][i].position[0])
+        ydata.append(BH_data_final[-1][i].position[1])
 
     xdata = xdata[-2:]
     ydata = ydata[-2:]
@@ -421,7 +422,7 @@ def update(frame):
     ln.set_data(xdata, ydata)
     return ln,
 
-ani = FuncAnimation(fig, update, frames=np.arange(100),
+ani = FuncAnimation(fig, update, frames=np.arange(25),
                     init_func=init, blit=True)
 plt.show()
 

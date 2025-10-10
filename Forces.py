@@ -35,7 +35,7 @@ def _comp_acceleration(BH_i : BlackHole, BH_j : BlackHole):
     mag_vec = np.linalg.norm(pos_vec) 
     assert mag_vec != 0, "BHs cannot be at the same position - division by zero" #Checks that the magnitude vector is not zero (i.e. same BHs)
     accel= GG* BH_j.mass * (pos_vec)/(mag_vec)**3 
-    return accel * kpc_km_con_fact 
+    return accel * kpc_km_con_fact / (ureg.kilometer**2 * ureg.kiloparsec / ureg.second**2 / ureg.solarmass)
 
 def recalculate_accelerations(BHs: list[BlackHole]):
     """
