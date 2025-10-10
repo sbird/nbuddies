@@ -1,7 +1,7 @@
 import numpy as np 
 from pint import UnitRegistry
 from BlackHoles_Struct import BlackHole
-# from "N-Buddies-initial-conditions" import generate_initial_conditions
+from initial_conditions import generate_initial_conditions
 from evolution import simulation
 import pickle
 import matplotlib.pyplot as plt
