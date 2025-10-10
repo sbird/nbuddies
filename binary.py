@@ -1,6 +1,8 @@
 import numpy as np 
 from pint import UnitRegistry
 from BlackHoles_Struct import BlackHole
+# from "N-Buddies-initial-conditions" import generate_initial_conditions
+from evolution import simulation
 import pickle
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -18,7 +20,7 @@ from matplotlib.animation import FuncAnimation
 
 # this is the function expected from ics team
 
-def generate_ICs(N_BH, custom_vals = None):
+def generate_binary_ICs(N_BH, custom_vals = None):
     # outlines the structure expected from the ICs team
     # we demand that there be a custom_vals option as defined here, so that we can test out 
     # simple cases corresponding to specific (instead of random) initial positions and velocities
@@ -65,35 +67,6 @@ def generate_ICs(N_BH, custom_vals = None):
     #     BH_data_ic.append(Black_hole(init_BH_values))
     # or if they are assigned as separate np arrays, 
     #     BH_data_ic.append(Black_hole(init_BH_masses, init_BH_positions, init_BH_velocities))
-
-
-# one example of custom values 
-## Change the digit format in the array to float
-custom_vals = { 'N': 2,
-                'mass': np.array([1.0e7, 1.0e7]), 
-                'position': np.array([[1., 0., 0.], [-1., 0., 0.]]), 
-                'velocity': np.array([[0. ,3.2791 ,0.], [0. ,-3.2791 ,0.]])}
-
-## Calculate the velocities for binary stars
-## Set the unit system first
-ureg = UnitRegistry()
-vel_unit = ureg.km / ureg.s
-dist_unit = ureg.kpc
-mass_unit = ureg.kg * 1.98892e30
-G = 4.301e-3 * (1e-3 * ureg.kpc) / mass_unit * (vel_unit) ** 2 
-
-## Calculate the velocity 
-velocity = np.sqrt( G * custom_vals['mass'][0] * mass_unit / dist_unit  ) / vel_unit / 2
-# custom_vals['velocity'][0] = np.array([0.,  velocity, 0.])
-# custom_vals['velocity'][1] = np.array([0., -velocity, 0.])
-
-# now initialize the black holes with mass, positions, and velocities using the function supplied by the ics team
-# N_BH is the number of BHs, BH_data is the list of length N_BH containing BH objects 
-BH_data = generate_ICs(N_BH = 2, custom_vals = custom_vals)   
-
-# or load it from some file as
-with open('BH_data_ic.pkl', 'rb') as f:
-    BH_data_ic = pickle.load(f)
 
 ## Test if the data is successfully loaded
 # print( BH_data_ic[0].mass, BH_data_ic[0].position, BH_data_ic[0].velocity )
@@ -318,46 +291,109 @@ def Plotting_for_Binary( ics, BH_result ):
 
     check1 = AnalyticalCheck( BH_result )
 
-
-
 # example call - 
+# one example of custom values 
+## Change the digit format in the array to float
+custom_vals = { 'N': 2,
+                'mass': np.array([1.0e7, 1.0e7]), 
+                'position': np.array([[1., 0., 0.], [-1., 0., 0.]]), 
+                'velocity': np.array([[0. ,3.2791 ,0.], [0. ,-3.2791 ,0.]])}
 
-# Based on the simulation and the example
-ics = BH_data_ic
+## Calculate the velocities for binary stars
+## Set the unit system first
+ureg = UnitRegistry()
+vel_unit = ureg.km / ureg.s
+dist_unit = ureg.kpc
+mass_unit = ureg.kg * 1.98892e30
+G = 4.301e-3 * (1e-3 * ureg.kpc) / mass_unit * (vel_unit) ** 2 
 
-R = np.linalg.norm(ics[0].position - ics[1].position) / 2
-V = np.linalg.norm(ics[0].velocity)
-Total_Mass = ics[0].mass + ics[1].mass
+## Calculate the velocity 
+# velocity = np.sqrt( G * custom_vals['mass'][0] * mass_unit / dist_unit  ) / vel_unit / 2
+# custom_vals['velocity'][0] = np.array([0.,  velocity, 0.])
+# custom_vals['velocity'][1] = np.array([0., -velocity, 0.])
 
-COM = np.zeros(3)
-for i in range(2): 
-    COM += (ics[i].position * ics[i].mass) / Total_Mass
+# now initialize the black holes with mass, positions, and velocities using the function supplied by the ics team
+# N_BH is the number of BHs, BH_data is the list of length N_BH containing BH objects 
+BH_data = generate_binary_ICs(N_BH = 2, custom_vals = custom_vals)   
 
-# Generate the analytical results for the given example
+# or load it from some file as
+with open('BH_data_ic.pkl', 'rb') as f:
+    BH_data_ic = pickle.load(f)
 
-# 8 data points
+# The below code is the test section for generating analytical dataset
+generate_analy_dataset = 1
 
-BH_data_pos = np.array([[ics[0].position, ics[1].position]])
+while generate_analy_dataset:
+    # Based on the simulation and the example
+    ics = BH_data_ic
 
-phi_1 = np.arccos( np.dot((ics[0].position - COM), np.array([R, 0, 0])))
-phi_2 = np.arccos( np.dot((ics[1].position - COM), np.array([R, 0, 0])))
+    R = np.linalg.norm(ics[0].position - ics[1].position) / 2
+    V = np.linalg.norm(ics[0].velocity)
+    Total_Mass = ics[0].mass + ics[1].mass
 
-for i in range(1, 101):
-    # Calculate the position of two black hole
-    phi = i / 100 * 2 * np.pi
-    # pos1: position of BlackHole 1
-    # pos2: position of BlackHole 2
-    pos_1 = np.array([ R*np.cos(phi_1 + phi), R*np.sin(phi_1 + phi), 0.])
-    pos_2 = np.array([ R*np.cos(phi_2 + phi), R*np.sin(phi_2 + phi), 0.])
+    COM = np.zeros(3)
+    for i in range(2): 
+        COM += (ics[i].position * ics[i].mass) / Total_Mass
 
-    new_pos = np.array( [[pos_1, pos_2]] )
-    BH_data_pos = np.concatenate( (BH_data_pos, new_pos), axis=0 )
+    # Generate the analytical results for the given example
 
+    # 100 data points
+
+    BH_data_pos = np.array([[ics[0].position, ics[1].position]])
+    BH_data_vel = np.array([[ics[0].velocity, ics[1].velocity]])
+
+    phi_1 = np.arccos( np.dot((ics[0].position - COM), np.array([R, 0, 0])))
+    phi_2 = np.arccos( np.dot((ics[1].position - COM), np.array([R, 0, 0])))
+
+    for i in range(1, 101):
+        # Calculate the position of two black hole
+        phi = i / 100 * 2 * np.pi
+        # pos1: position of BlackHole 1
+        # pos2: position of BlackHole 2
+        pos_1 = np.array([ R*np.cos(phi_1 + phi), R*np.sin(phi_1 + phi), 0.])
+        pos_2 = np.array([ R*np.cos(phi_2 + phi), R*np.sin(phi_2 + phi), 0.])
+
+        vel_1 = np.array([ -V*np.sin(phi_1 + phi), V*np.cos(phi_1 + phi), 0.])
+        vel_2 = np.array([ -V*np.sin(phi_2 + phi), V*np.cos(phi_2 + phi), 0.])
+
+        new_pos = np.array( [[pos_1, pos_2]] )
+        new_vel = np.array( [[vel_1, vel_2]] )
+        BH_data_pos = np.concatenate( (BH_data_pos, new_pos), axis=0 )
+        BH_data_vel = np.concatenate( (BH_data_vel, new_vel), axis=0 )
+    
+    # Save the data into files
+    n_files = np.shape(BH_data_pos)[0]
+    N = 2
+
+    ## Load the custom_vals into Class objects
+    list_of_BH = []
+    for i in range(n_files):
+        for j in range(N):
+            BH = BlackHole( ics[j].mass, BH_data_pos[i][j], BH_data_vel[i][j] )
+            list_of_BH.append(BH)
+
+        # Save the file
+        Save_Dir = "./data_test/"
+        with open( Save_Dir + 'BH_data_%03d.pkl' % i, 'wb') as handle:
+            pickle.dump(list_of_BH, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    
+    # End the loop
+    break
+
+
+ICS_path = "./BH_data_ic.pkl"
+output_dir = "./data_test/"
+
+# Implement the evolution code here
+# simulation( ICS_path, output_dir, 500, 10, 20)
 
 # Plot a circle with radius R, center at COM based on the case
 
+COM = [0,0]
+R = 1
+
 fig, ax = plt.subplots(figsize=(8, 8))
-circle = patches.Circle( COM[:2], R, fill=False, linewidth=1, ls = "--")
+circle = patches.Circle( COM, R, fill=False, linewidth=1, ls = "--")
 ax.add_patch(circle)
 ln, = ax.plot([], [], 'ro')
 
@@ -369,8 +405,19 @@ def init():
     return ln,
 
 def update(frame):
-    xdata = BH_data_pos[frame][:, 0]
-    ydata = BH_data_pos[frame][:, 1]
+    # Load the corresponding snapshot
+    with open( output_dir + 'BH_data_%03d.pkl' % frame, 'rb') as f:
+        BH_data_final = pickle.load(f)
+
+    xdata = []
+    ydata = []
+    for i in range(len(BH_data_final)):
+        xdata.append(BH_data_final[i].position[0])
+        ydata.append(BH_data_final[i].position[1])
+
+    xdata = xdata[-2:]
+    ydata = ydata[-2:]
+
     ln.set_data(xdata, ydata)
     return ln,
 
