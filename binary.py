@@ -55,7 +55,7 @@ def generate_binary_ICs(N_BH, custom_vals = None):
             list_of_BH.append(BH)
 
         ## Save the file
-        with open('BH_data_ic.pkl', 'wb') as handle:
+        with open('BH_data_ic_2.pkl', 'wb') as handle:
             pickle.dump(list_of_BH, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     else:
@@ -308,9 +308,10 @@ mass_unit = ureg.kg * 1.98892e30
 G = 4.301e-3 * (1e-3 * ureg.kpc) / mass_unit * (vel_unit) ** 2 
 
 ## Calculate the velocity 
-# velocity = np.sqrt( G * custom_vals['mass'][0] * mass_unit / dist_unit  ) / vel_unit / 2
-# custom_vals['velocity'][0] = np.array([0.,  velocity, 0.])
-# custom_vals['velocity'][1] = np.array([0., -velocity, 0.])
+r = np.linalg.norm( custom_vals['position'][1] - custom_vals['position'][0] )
+velocity = np.sqrt( G * custom_vals['mass'][0] * mass_unit / (2 * r * dist_unit)  ) / vel_unit
+custom_vals['velocity'][0] = np.array([0.,  velocity, 0.])
+custom_vals['velocity'][1] = np.array([0., -velocity, 0.])
 
 # now initialize the black holes with mass, positions, and velocities using the function supplied by the ics team
 # N_BH is the number of BHs, BH_data is the list of length N_BH containing BH objects 
@@ -325,7 +326,7 @@ generate_analy_dataset = 0
 
 while generate_analy_dataset:
     # Based on the simulation and the example
-    ics = BH_data_ic
+    ics = BH_data_ic[-1]
 
     R = np.linalg.norm(ics[0].position - ics[1].position) / 2
     V = np.linalg.norm(ics[0].velocity)
@@ -375,14 +376,14 @@ while generate_analy_dataset:
         # Save the file
         Save_Dir = "./data_test/"
         with open( Save_Dir + 'BH_data_%03d.pkl' % i, 'wb') as handle:
-            pickle.dump(list_of_BH, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump([list_of_BH], handle, protocol=pickle.HIGHEST_PROTOCOL)
     
     # End the loop
     break
 
 
-ICS_path = "./BH_data_ic.pkl"
-output_dir = "./data/"
+ICS_path = "./BH_data_ic_2.pkl"
+output_dir = "./data_test/"
 
 # Implement the evolution code here
 simulation( ICS_path, output_dir, 500, 10, 20)
@@ -397,17 +398,29 @@ circle = patches.Circle( COM, R, fill=False, linewidth=1, ls = "--")
 ax.add_patch(circle)
 ln, = ax.plot([], [], 'ro')
 
+# Create a text object to display the loss
+loss_text = ax.text(0.05, 0.95, '', transform=ax.transAxes,
+                    fontsize=14, va='top', ha='left',
+                    bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+
 def init():
     ax.set_xlim( -2*R, 2*R )
     ax.set_ylim( -2*R, 2*R )
     ax.set_xlabel("kpc", fontsize=15)
     ax.set_ylabel("kpc", fontsize=15)
+    loss_text.set_text('')  # Clear the loss text
     return ln,
+
+def loss_func( xdata, ydata, R ):
+    loss = 0
+    for i in range(len(xdata)):
+        loss += (np.sqrt( xdata[i]**2 + ydata[i]**2 ) - R) / R
+    return loss
 
 def update(frame):
     # Load the corresponding snapshot
-    with open( output_dir + 'data_batch' + str(frame) + '.pkl', 'rb') as f:
-    # with open( output_dir + 'BH_data_%03d.pkl' % frame, 'rb') as f:
+    # with open( output_dir + 'data_batch' + str(frame) + '.pkl', 'rb') as f:
+    with open( output_dir + 'BH_data_%03d.pkl' % frame, 'rb') as f:
         BH_data_final = pickle.load(f)
 
     xdata = []
@@ -420,7 +433,9 @@ def update(frame):
     ydata = ydata[-2:]
 
     ln.set_data(xdata, ydata)
-    return ln,
+    loss = loss_func(xdata, ydata, R)
+    loss_text.set_text(f'Loss: {loss:.4f}')
+    return ln, loss_text
 
 ani = FuncAnimation(fig, update, frames=np.arange(25),
                     init_func=init, blit=True)
