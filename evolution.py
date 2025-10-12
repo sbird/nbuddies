@@ -92,11 +92,10 @@ def update_params(data, tot_time, num_steps, delta_t, path):
     count = 0 # goes from 0 to num_steps - 1, used to check when to save the data
     data_lst = [data] # initialized with the starting data, stores the evolved data batch-wise
     KM_PER_KPC = 3.0856776e16 # number of km in kpc for using velocity to update position
-
-    for time_step in range(tot_time): # for each time step, carry out the evolution for all BHs
+    for time_step in range(0, tot_time, delta_t): # for each time step, carry out the evolution for all BHs
         recalculate_accelerations(data)  # provided in Forces.py by the Forces team
         for BH in data:  # assumes the BH objects are already loaded with initial values
-            BH.position += (BH.velocity * KM_PER_KPC) * delta_t # Euler integration (formula given above)
+            BH.position += (BH.velocity / KM_PER_KPC) * delta_t # Euler integration (formula given above)
             BH.velocity += BH.acceleration * delta_t # Euler integration (formula given above)
         count += 1
         data_lst.append(data)

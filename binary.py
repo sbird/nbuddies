@@ -249,48 +249,6 @@ class AnalyticalCheck():
         self.compute_energy_mom(tol_frac = tol_frac)
         self.trajectory_checker()
 
-
-# Write a plotting function showing both the trajectory of analytical solution and the position of the particle
-# Also define a loss function
-def Plotting_for_Binary( ics, BH_result ):
-
-    """
-    input:
-    ics: The example initial conditions for binary stars.
-            A list of BlackHole class objects 
-            For the binary stars, the
-                                
-
-    BH_result: Expected results after simulations
-    """
-
-    # Read the initial conditions of the binary stars
-    # Radius, Velocity, and the center of the orbit
-    R = np.linalg.norm(ics[0].position - ics[1].position) / 2
-    V = ics[0].velocity
-    Total_Mass = ics[0].mass + ics[1].mass
-
-    COM = np.zeros(3)
-    for i in range(2): 
-        COM += (ics[i].position * ics[i].mass) / Total_Mass
-
-    
-    # Plot a circle with radius R, center at COM based on the case
-    fig, ax = plt.subplots(figsize=(8, 8))
-    circle = patches.Circle( COM[:2], R, fill=False, linewidth=1, ls = "--")
-
-    ax.add_patch(circle)
-
-    ax.set_xlim( -2*R, 2*R )
-    ax.set_ylim( -2*R, 2*R )
-
-    ax.set_xlabel("kpc")
-    ax.set_ylabel("kpc")
-
-    plt.show()
-
-    check1 = AnalyticalCheck( BH_result )
-
 # example call - 
 # one example of custom values 
 ## Change the digit format in the array to float
@@ -310,8 +268,11 @@ G = 4.301e-3 * (1e-3 * ureg.kpc) / mass_unit * (vel_unit) ** 2
 ## Calculate the velocity 
 r = np.linalg.norm( custom_vals['position'][1] - custom_vals['position'][0] )
 velocity = np.sqrt( G * custom_vals['mass'][0] * mass_unit / (2 * r * dist_unit)  ) / vel_unit
-custom_vals['velocity'][0] = np.array([0.,  velocity, 0.])
-custom_vals['velocity'][1] = np.array([0., -velocity, 0.])
+accel = (G * custom_vals['mass'][0] * mass_unit / (r* dist_unit)**2).to('km/s**2') / (vel_unit / ureg.s)
+# print("Velocity: %.3f km/s" % velocity)
+# print("Acceleration: %.3e km/s**2" % accel )
+# custom_vals['velocity'][0] = np.array([0.,  velocity, 0.])
+# custom_vals['velocity'][1] = np.array([0., -velocity, 0.])
 
 # now initialize the black holes with mass, positions, and velocities using the function supplied by the ics team
 # N_BH is the number of BHs, BH_data is the list of length N_BH containing BH objects 
@@ -383,11 +344,16 @@ while generate_analy_dataset:
 
 
 ICS_path = "./BH_data_ic_2.pkl"
-output_dir = "./data_test/"
+output_dir = "./data/"
+# output_dir = "./data_test/"
 
 # Implement the evolution code here
-simulation( ICS_path, output_dir, 500, 10, 20)
+Total_time = 5*10**16
+n_snapshots = 100
+delta_t_fraction = 100
 
+simulation( ICS_path, output_dir, Total_time, Total_time // n_snapshots // delta_t_fraction, Total_time // n_snapshots)
+# simulation( ICS_path, output_dir, 500, 1, 20)
 # Plot a circle with radius R, center at COM based on the case
 
 COM = [0,0]
@@ -412,15 +378,15 @@ def init():
     return ln,
 
 def loss_func( xdata, ydata, R ):
-    loss = 0
+    loss = 0.
     for i in range(len(xdata)):
-        loss += (np.sqrt( xdata[i]**2 + ydata[i]**2 ) - R) / R
-    return loss
+        loss += ((np.sqrt( xdata[i]**2 + ydata[i]**2 ) - R) / R)
+    return loss.to_reduced_units()
 
 def update(frame):
     # Load the corresponding snapshot
-    # with open( output_dir + 'data_batch' + str(frame) + '.pkl', 'rb') as f:
-    with open( output_dir + 'BH_data_%03d.pkl' % frame, 'rb') as f:
+    with open( output_dir + 'data_batch' + str(frame) + '.pkl', 'rb') as f:
+    # with open( output_dir + 'BH_data_%03d.pkl' % frame, 'rb') as f:
         BH_data_final = pickle.load(f)
 
     xdata = []
@@ -437,7 +403,7 @@ def update(frame):
     loss_text.set_text(f'Loss: {loss:.4f}')
     return ln, loss_text
 
-ani = FuncAnimation(fig, update, frames=np.arange(25),
+ani = FuncAnimation(fig, update, frames=np.arange(100),
                     init_func=init, blit=True)
 plt.show()
 
