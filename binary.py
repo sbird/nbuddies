@@ -314,10 +314,11 @@ while generate_analy_dataset:
         # pos2: position of BlackHole 2
         pos_1 = np.array([ R*np.cos(phi_1 + phi), R*np.sin(phi_1 + phi), 0.])
         pos_2 = np.array([ R*np.cos(phi_2 + phi), R*np.sin(phi_2 + phi), 0.])
-
+        # vel1: velocity of BlackHole 1
+        # vel2: velocity of BlackHole 2
         vel_1 = np.array([ -V*np.sin(phi_1 + phi), V*np.cos(phi_1 + phi), 0.])
         vel_2 = np.array([ -V*np.sin(phi_2 + phi), V*np.cos(phi_2 + phi), 0.])
-
+        # Append the data together into the structure [[pos1_t1, pos2_t1], [pos1_t2, pos2_t2], ...]
         new_pos = np.array( [[pos_1, pos_2]] )
         new_vel = np.array( [[vel_1, vel_2]] )
         BH_data_pos = np.concatenate( (BH_data_pos, new_pos), axis=0 )
@@ -328,6 +329,7 @@ while generate_analy_dataset:
     N = 2
 
     ## Load the custom_vals into Class objects
+    # Save the data with the structure [[BH1_t0, BH2_t0], [BH1_t1, BH2_t1], ...]
     list_of_BH = []
     for i in range(n_files):
         for j in range(N):
@@ -343,21 +345,23 @@ while generate_analy_dataset:
     break
 
 
-ICS_path = "./BH_data_ic_2.pkl"
+ICS_path = "./BH_data_ic.pkl"
 output_dir = "./data/"
 # output_dir = "./data_test/"
 
 # Implement the evolution code here
-Total_time = 5*10**16
-n_snapshots = 100
-delta_t_fraction = 100
+Total_time = 2*10**17               # Total evoultion time in seconds
+n_snapshots = 50                    # Number of the output snapshots
+delta_t_fraction = n_snapshots      # How many steps between two snapshots
+                                    # Due to the issue in output functions, set this to be the same as n_snapshots 
+                                    # to get an expected output files
 
+# Run the simulation here
 simulation( ICS_path, output_dir, Total_time, Total_time // n_snapshots // delta_t_fraction, Total_time // n_snapshots)
-# simulation( ICS_path, output_dir, 500, 1, 20)
-# Plot a circle with radius R, center at COM based on the case
 
+# Plot a circle with radius R, center at COM based on the case
 COM = [0,0]
-R = 1
+R = np.linalg.norm(custom_vals['position'][0] - custom_vals['position'][1]) / 2
 
 fig, ax = plt.subplots(figsize=(8, 8))
 circle = patches.Circle( COM, R, fill=False, linewidth=1, ls = "--")
@@ -369,6 +373,7 @@ loss_text = ax.text(0.05, 0.95, '', transform=ax.transAxes,
                     fontsize=14, va='top', ha='left',
                     bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
 
+# Initialize the plot limits and labels
 def init():
     ax.set_xlim( -2*R, 2*R )
     ax.set_ylim( -2*R, 2*R )
@@ -377,12 +382,14 @@ def init():
     loss_text.set_text('')  # Clear the loss text
     return ln,
 
+# Update the loss function defined as the fraction of the distance from the center and the radius
 def loss_func( xdata, ydata, R ):
     loss = 0.
     for i in range(len(xdata)):
         loss += ((np.sqrt( xdata[i]**2 + ydata[i]**2 ) - R) / R)
     return loss.to_reduced_units()
 
+# Update the plot and make it animated
 def update(frame):
     # Load the corresponding snapshot
     with open( output_dir + 'data_batch' + str(frame) + '.pkl', 'rb') as f:
@@ -399,11 +406,11 @@ def update(frame):
     ydata = ydata[-2:]
 
     ln.set_data(xdata, ydata)
-    loss = loss_func(xdata, ydata, R)
+    loss = loss_func(xdata, ydata, R).m
     loss_text.set_text(f'Loss: {loss:.4f}')
     return ln, loss_text
 
-ani = FuncAnimation(fig, update, frames=np.arange(100),
+ani = FuncAnimation(fig, update, frames=np.arange(n_snapshots),
                     init_func=init, blit=True)
 plt.show()
 
