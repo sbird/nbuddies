@@ -1,4 +1,4 @@
-from Forces import recalculate_accelerations
+from Forces import *
 import os
 import pickle
 import numpy as np
@@ -40,35 +40,35 @@ def save_data_pkl(data, filename, path):
     with open(file_path, 'wb') as f:
         pickle.dump(data, f)
 
-def load_data_np(filename, path):
-    ''' 
-    Load the input position or velocity arrays as numpy files
+# def load_data_np(filename, path):
+#     ''' 
+#     Load the input position or velocity arrays as numpy files
     
-    Inputs: 
-    filename - string of the filename, to be given by the IC team
-    path - string of the common directory, given by the Git(?)
+#     Inputs: 
+#     filename - string of the filename, to be given by the IC team
+#     path - string of the common directory, given by the Git(?)
 
-    Output:
-    Array of the loaded data having shape (N,3),
-    where N is number of particles,
-    3 is the coordinates
-    '''
-    return np.load(path+filename)
+#     Output:
+#     Array of the loaded data having shape (N,3),
+#     where N is number of particles,
+#     3 is the coordinates
+#     '''
+#     return np.load(path+filename)
 
 
-def save_data_np(data, filename, path):
-    ''' 
-    Save the updated position or velocity arrays as numpy files
+# def save_data_np(data, filename, path):
+#     ''' 
+#     Save the updated position or velocity arrays as numpy files
     
-    Inputs:
-    filename - string of the filename, chosen by the timesteps team
-    path - string of the common directory, given by the Git(?)
-    data - numpy arrays/class objects of shape (B, 3) containing position or velocity.
+#     Inputs:
+#     filename - string of the filename, chosen by the timesteps team
+#     path - string of the common directory, given by the Git(?)
+#     data - numpy arrays/class objects of shape (B, 3) containing position or velocity.
 
-    Output:
-    None
-    '''
-    return np.save(data, path+filename)
+#     Output:
+#     None
+#     '''
+#     return np.save(data, path+filename)
 
 def update_params(data, tot_time, num_steps, delta_t, path):
     ''' 
@@ -82,50 +82,31 @@ def update_params(data, tot_time, num_steps, delta_t, path):
     delta_t - float value of the time step for evolution
     tot_time - float value of the total time for evolution
     num_steps - integer value of the number of time steps to be saved in each batch
+                given by batch = tot_time // num_steps
     path - string of the common directory, given by the Git(?)
     
     Output:
     None
     '''
 
-    batch = tot_time // num_steps # number of batches
+    batch = int(tot_time // num_steps) # number of batches
     count = 0 # goes from 0 to num_steps - 1, used to check when to save the data
     data_lst = [data] # initialized with the starting data, stores the evolved data batch-wise
     KM_PER_KPC = 3.0856776e16 # number of km in kpc for using velocity to update position
-    for time_step in range(0, tot_time, delta_t): # for each time step, carry out the evolution for all BHs
-        recalculate_accelerations(data)  # provided in Forces.py by the Forces team
+
+    for i, time_step in zip(range(batch),range(0,tot_time, delta_t)): # for each time step, carry out the evolution for all BHs
+        recalculate_accelerations(data)  # provided in Forces.py
         for BH in data:  # assumes the BH objects are already loaded with initial values
-            BH.position += (BH.velocity / KM_PER_KPC) * delta_t # Euler integration (formula given above)
+            BH.position += (BH.velocity/ KM_PER_KPC) * delta_t # Euler integration (formula given above)
             BH.velocity += BH.acceleration * delta_t # Euler integration (formula given above)
         count += 1
         data_lst.append(data)
         if count == batch:
-            save_data_pkl(data_lst, f'data_batch{(time_step+1)//num_steps}.pkl', path)  # saving as a pkl file right now
+            # save_data_pkl(data_lst, f'data_batch{(time_step+1)//num_steps}.pkl', path)  # saving as a pkl file right now
+            save_data_pkl(data_lst, f'data_batch{i+1}.pkl', path)  # saving as a pkl file right now
             # resets the values for the next batch
             count = 0
             data_lst = []
-
-def simulation(initial_file, output_folder, period, delta_t, nsteps):
-    """
-    Wrapper Function for the simulation of time evolve N-body Problem
-    
-    Inputs:
-    initial_file : Pathname to the file contained the initial condition file
-    output_folder : Path to folder for the save time steps
-    period : total amount of time of the simulation
-    delta_t : timesteps
-    nsteps : number of steps for each saving
-    
-    Outputs:
-    None
-    """
-    # load initial condition
-    inital = load_data_pkl(initial_file) # should be a list of BH objects
-
-    # Run Simulation
-    update_params(inital, period, nsteps, delta_t, output_folder)
-
-    
             
 
 # def update_params(data, tot_time, num_steps, delta_t):
@@ -166,6 +147,31 @@ def simulation(initial_file, output_folder, period, delta_t, nsteps):
 #                 pos_array[0][i] = BH.position
 #                 vel_array[0][i] = BH.velocity
             
-#     # return data
+#    
+
+
+def simulation(initial_file, output_folder, tot_time, delta_t, nsteps):
+    """
+    Wrapper Function for the simulation of time evolve N-body Problem
+    
+    Inputs:
+    initial_file : Path name to the file contained the initial condition file
+    output_folder : Path to folder for the save time steps
+    tot_time : total amount of time of the simulation
+    delta_t : size of the timestep
+    nsteps : number of steps for each saving of the batch
+    
+    Outputs:
+    None
+    """
+    # load initial condition
+    inital = load_data_pkl(initial_file) # should be a list of BH objects
+
+    # Run Simulation
+    update_params(inital, tot_time, nsteps, delta_t, output_folder)
 
 print('Yay! The evolution2.py file is being used!')
+print('\nNeed to call the simulation function properly to ensure it works though :)')
+
+# Example usage by calling the simulation function using arbitrary parameters and names
+# simulation1 = simulation('initial_conditions.pkl', './', 100, 0.01, 10)

@@ -2,7 +2,7 @@ import numpy as np
 from pint import UnitRegistry
 from BlackHoles_Struct import BlackHole
 from initial_conditions import generate_initial_conditions
-from evolution import simulation
+from evolution2 import simulation
 import pickle
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
