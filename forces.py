@@ -1,51 +1,51 @@
-from black_holes import *
 
-KM_PER_KPC = 30856776000000000.0 # number of km in kpc
-GG = 4.301e-6 # Newton constant km^2 kpc / Msun s^2
+#N-Body Gravitational Forces Calculations
 
-def recalculate_acceleration_due_to_gravity(data: list[Black_hole]):
+import numpy as np
+from pint import UnitRegistry 
+from BlackHoles_Struct import BlackHole
+
+"""
+Initialize unit registry and define units
+We decide that the gravitational constant units will be:
+    kiloparsec * kilometer^2 / (solarmass * second^2)
+Therefore acceleration units of kilometer^2 / (kiloparsec * second^2) (messy for timestep team)
+We convert acceleration to km/s^2 using a conversion factor:
+    1 kpc / 3.0856e16 km = 3.2411e-17
+"""
+ureg = UnitRegistry()
+ureg.define('solarmass = 1.98847e30 * kilogram') 
+G = 6.67430e-11 * ureg.meter**3 / (ureg.kilogram * ureg.second**2) 
+GG = G.to("kiloparsec * kilometer**2 / (solarmass * second**2)") 
+kpc_km_con_fact = 3.2411e-17 
+
+
+def _comp_acceleration(BH_i : BlackHole, BH_j : BlackHole):
+    """ 
+    Acceleration Function: Compute acceleration on BH_i due to BH_j
+    -BH_i = blackhole on which the force is exerted
+    -BH_j = blackhole exerting grav force 
+    In this function we...
+    - Calulate the position vector 
+    - Calculate the vector magnitude --> np.linalg.norm() function calculates the magnitude vector (Euclidean norm)
+    - Calculate the acceleration using our gravitational constant and converts to km/s**2
+    Returns np.ndarray with acceleration vector for BH_i in km/s**2
     """
-    Recalculates accelerations of all black holes
+    pos_vec = BH_i.displacement(BH_j)
+    mag_vec = np.linalg.norm(pos_vec) 
+    assert mag_vec != 0, "BHs cannot be at the same position - division by zero" #Checks that the magnitude vector is not zero (i.e. same BHs)
+    accel= GG* BH_j.mass * (pos_vec)/(mag_vec)**3 
+    return accel * kpc_km_con_fact 
 
-    Parameters
-    ----------
-    data : list[Black_hole]
-        list of black holes to be target and basis of acceleration recalculation
+def recalculate_accelerations(BHs: list[BlackHole]):
     """
-    for BH_i in data:
-        BH_i.acceleration = np.zeros(3)
-        for BH_j in data:
-            if BH_i == BH_j:
+    Function for looping over black holes 
+    Recalculates acceleration and adds it to the existing accleration (which should be zero)
+    """
+    for BH_i in BHs: 
+        BH_i.acceleration = np.zeros(3) #Reset acceleration before summing 
+        for BH_j in BHs: 
+            if BH_i == BH_j: 
                 continue
-            BH_i.acceleration += _calculate_acceleration_from_one_body(BH_i, BH_j)
-
-def _calculate_acceleration_from_one_body(target: Black_hole, source: Black_hole):
-    """
-    Calculate the accelation of one black hole due to another. Note the units of acceleration are km^2 / kpc s^2
-
-    Parameters
-    ----------
-    target : Black_hole
-        The black hole whose acceleration is being calculated
-    source : Black_hole
-        The black hole whose gravity is the source of the acceleration
-    """
-    displacement = source.position - target.position
-    accel = GG * source.mass * displacement / (_vector_magnitude(displacement) ** 3)
-    return accel / KM_PER_KPC
-
-def _vector_magnitude(vec: list[float]):
-    """
-    Computes magnitude of a vector.
-
-    Parameters
-    ----------
-    vec : list[float]
-        The vectors to have it's magnitude calculated
-    
-    Returns
-    -------
-    float
-        The magnitude of the vector
-    """
-    return np.sqrt(np.sum(vec*vec))
+            else:
+                BH_i.acceleration += _comp_acceleration(BH_i, BH_j) 
