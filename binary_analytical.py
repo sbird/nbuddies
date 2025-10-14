@@ -74,25 +74,16 @@ class AnalyticalCheck():
 
         # FIXME - if planar, can do away with the third column 
 
-        relative_r_vec = r1_vec - r2_vec  # M x 3 array
-        # remember that relative_r_vec is the same in any frame (CM or not)
-    
         v1_vec = self.BH_data_final[0].velocity
         v2_vec = self.BH_data_final[1].velocity   # M x 3 arrays 
 
-        relative_v_vec = v1_vec - v2_vec  # M x 3 array 
-
-        m_1 = self.BH_data_final[0].mass 
-        m_2 = self.BH_data_final[1].mass # scalar
-
-        reduced_mass = m_1*m_2/(m_1 + m_2)  # scalar
         # as mentioned in the docstring, no need for dimensional consistency checks on these
-
-        self.relative_r_vec = relative_r_vec
-        self.relative_v_vec = relative_v_vec
-        self.mu = reduced_mass
-        self.m1 = m_1
-        self.m2 = m_2
+        # remember that relative_r_vec is the same in any frame (CM or not)
+        self.relative_r_vec = v1_vec - v2_vec  # M x 3 array 
+        self.relative_v_vec = r1_vec - r2_vec  # M x 3 array
+        self.m1 = self.BH_data_final[0].mass # scalar
+        self.m2 = self.BH_data_final[1].mass # scalar
+        self.mu = self.m1*self.m2/(self.m1 + self.m2)  # scalar
 
 ############################################################
         

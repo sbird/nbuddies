@@ -1,7 +1,7 @@
 import numpy as np 
 from pint import UnitRegistry
 from BlackHoles_Struct import BlackHole
-from initial_conditions import generate_initial_conditions
+from ICs import generate_initial_conditions
 from evolution2 import simulation
 import pickle
 import matplotlib.pyplot as plt
@@ -55,7 +55,7 @@ def generate_binary_ICs(N_BH, custom_vals = None):
             list_of_BH.append(BH)
 
         ## Save the file
-        with open('BH_data_ic_2.pkl', 'wb') as handle:
+        with open('BH_data_ic.pkl', 'wb') as handle:
             pickle.dump(list_of_BH, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     else:
@@ -103,11 +103,11 @@ with open('BH_data_ic.pkl', 'rb') as f:
     BH_data_ic = pickle.load(f)
 
 # The below code is the test section for generating analytical dataset
-generate_analy_dataset = 0
+generate_analy_dataset = False
 
 while generate_analy_dataset:
     # Based on the simulation and the example
-    ics = BH_data_ic[-1]
+    ics = BH_data_ic
 
     R = np.linalg.norm(ics[0].position - ics[1].position) / 2
     V = np.linalg.norm(ics[0].velocity)
@@ -167,7 +167,6 @@ while generate_analy_dataset:
 
 ICS_path = "./BH_data_ic.pkl"
 output_dir = "./data/"
-# output_dir = "./data_test/"
 
 # Implement the evolution code here
 Total_time = 2*10**17               # Total evoultion time in seconds
@@ -213,7 +212,6 @@ def loss_func( xdata, ydata, R ):
 def update(frame):
     # Load the corresponding snapshot
     with open( output_dir + 'data_batch' + str(frame) + '.pkl', 'rb') as f:
-    # with open( output_dir + 'BH_data_%03d.pkl' % frame, 'rb') as f:
         BH_data_final = pickle.load(f)
 
     xdata = []
@@ -232,7 +230,7 @@ def update(frame):
 
 ani = FuncAnimation(fig, update, frames=np.arange(n_snapshots),
                     init_func=init, blit=True)
-plt.show()
+ani.save('binary_simulation.gif', fps=5)
 
 # check1 = AnalyticalCheck(BH_data_final)
 # check1.wrapper_for_analytical_check(tol_frac = 1e-3)
