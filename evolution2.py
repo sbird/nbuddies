@@ -2,6 +2,9 @@ from Forces import *
 import os
 import pickle
 import numpy as np
+import copy
+
+KM_PER_KPC = 3.0856776e16 # number of km in kpc for using velocity to update position
 
 def load_data_pkl(filename, path = None):
     ''' 
@@ -70,7 +73,7 @@ def save_data_pkl(data, filename, path):
 #     '''
 #     return np.save(data, path+filename)
 
-def update_params(data, tot_time, num_steps, delta_t, path):
+def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True):
     ''' 
     Euler integration of the position and velocity according to
     r(t+Delta t) = r(t) + v(t) * Delta t
@@ -84,29 +87,64 @@ def update_params(data, tot_time, num_steps, delta_t, path):
     num_steps - integer value of the number of time steps to be saved in each batch
                 given by batch = tot_time // num_steps
     path - string of the common directory, given by the Git(?)
+    leapfrog - True if want leapfrog integration, False if want simple Euler integration (default True)
     
     Output:
-    None
+    None - All output files are saved as picke file
     '''
 
     batch = int(tot_time // num_steps) # number of batches
-    count = 0 # goes from 0 to num_steps - 1, used to check when to save the data
+    count = 0 # goes from 0 to num_steps - 1, used to check when to save the data  
     data_lst = [data] # initialized with the starting data, stores the evolved data batch-wise
-    KM_PER_KPC = 3.0856776e16 # number of km in kpc for using velocity to update position
-
+    
     for i, time_step in zip(range(batch),range(0,tot_time, delta_t)): # for each time step, carry out the evolution for all BHs
-        recalculate_accelerations(data)  # provided in Forces.py
-        for BH in data:  # assumes the BH objects are already loaded with initial values
-            BH.position += (BH.velocity/ KM_PER_KPC) * delta_t # Euler integration (formula given above)
-            BH.velocity += BH.acceleration * delta_t # Euler integration (formula given above)
+        if (leapfrog):
+            # Leapfrog Integration
+            leapfrog_calculation(data)
+        else:
+            # Euler integration
+            recalculate_accelerations(data)  # provided in Forces.py
+            for BH in data:  # assumes the BH objects are already loaded with initial values
+                BH.position += (BH.velocity/ KM_PER_KPC) * delta_t # Euler integration (formula given above)
+                BH.velocity += BH.acceleration * delta_t # Euler integration (formula given above)
         count += 1
-        data_lst.append(data)
+        data_lst.append(copy.deepcopy(data))
         if count == batch:
             # save_data_pkl(data_lst, f'data_batch{(time_step+1)//num_steps}.pkl', path)  # saving as a pkl file right now
             save_data_pkl(data_lst, f'data_batch{i+1}.pkl', path)  # saving as a pkl file right now
+
             # resets the values for the next batch
             count = 0
             data_lst = []
+
+def leapfrog_calculation(data, delta_t):
+    """
+    Updating position and velocity of BH objects with conserving phase space volume (symplectic integrator).
+
+    Inputs:
+    data - list of BH objects
+    delta_t - The timestep for each round of update
+    
+    Output:
+    None - updating BH objects inplace
+    
+    """
+    delta_half = delta_t / 2
+    recalculate_accelerations(data) # Get acceleartion with current position
+
+    # First Kick and Drift
+    for BH in data:
+        BH.velocity += BH.acceleration * delta_half # Update the velocity with half of timestep
+        BH.position += (BH.velocity/ KM_PER_KPC) * delta_t # Update the position with the new velocity and with full timestep
+
+    # Recalculation of the acceleration
+    recalculate_accelerations(data)
+
+    # Last Kick
+    for BH in data:
+        BH.velocity += BH.acceleration * delta_half # Update the velocity with half of timestep and updated acceleration
+
+    return None
             
 
 # def update_params(data, tot_time, num_steps, delta_t):
@@ -162,7 +200,7 @@ def simulation(initial_file, output_folder, tot_time, delta_t, nsteps):
     nsteps : number of steps for each saving of the batch
     
     Outputs:
-    None
+        
     """
     # load initial condition
     inital = load_data_pkl(initial_file) # should be a list of BH objects
