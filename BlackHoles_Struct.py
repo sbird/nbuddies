@@ -2,12 +2,23 @@
 import numpy as np
 
 class BlackHole():
-    """
-    Define data structure --> struct 
-    mass, position (3D), velocity (3D), and acceleration (initialized to zero)
-    Validate data before assigning them
-    """
-    def __init__(self, mass: float, position: list[float], velocity: list[float]):
+    def __init__(self, mass: float, position: list[float], velocity: list[float], acceleration : list[float] = [0,0,0]):
+        """
+        Define data structure --> struct 
+        mass, position (3D), velocity (3D), and acceleration (initialized to zero by default)
+        Validate data before assigning them
+
+        Parameters
+        ----------
+        mass : float
+            mass of black hole
+        position : list[float]
+            position vector of black hole in kpc
+        velocity : list[float])
+            velocity vector of black hole in km/s
+        acceleration : list[float], default [0,0,0]
+            acceleration vector of black hole in km/s^2
+        """
         assert mass > 0, "Mass must be positive" #checks mass is positive 
         assert len(position) == 3, "Position must be a 3D vector" #checks that position is a vector
         assert len(velocity) == 3, "Velocity must be a 3D vector" #checks that velocity is a vector
@@ -15,20 +26,37 @@ class BlackHole():
         self.mass = mass 
         self.position = np.array(position) 
         self.velocity = np.array(velocity) 
-        self.acceleration = np.zeros(3) 
-        
-
-#Displacement and equality functions must go in the class because self will not work outside of class
+        self.acceleration = np.array(acceleration)
 
     def displacement(self, other):
         """
         Computes displacement vector from self to another black hole
+
+        Parameters
+        ----------
+        other : BlackHole
+            The black hole to which displacement is being calculated
+
+        Returns
+        -------
+        list[float]
+            displacement vector between other and self, points towards other.
         """
         return other.position - self.position 
 
     def __eq__(self, other): 
         """
-        Compare all parameters except acceleration to check if two BHs are the same 
+        Checks if two blacks holes are the same by checking all except acceleration.
+
+        Parameters
+        ----------
+        other : BlackHole
+            The black hole being compared to
+
+        Returns
+        -------
+        bool
+            Whether or not these black holes are the same.
         """
         if other.mass != self.mass: 
             return False
@@ -38,3 +66,14 @@ class BlackHole():
             if other.velocity[i] != self.velocity[i]: 
                 return False 
         return True 
+
+    def copy(self):
+        """
+        Returns copy of the black hole object
+
+        Returns
+        -------
+        BlackHole
+            Copy of the black hole object
+        """
+        return BlackHole(self.mass, self.position, self.velocity, self.acceleration)
