@@ -43,41 +43,8 @@ def save_data_pkl(data, filename, path):
     with open(file_path, 'wb') as f:
         pickle.dump(data, f)
 
-# def load_data_np(filename, path):
-#     ''' 
-#     Load the input position or velocity arrays as numpy files
-    
-#     Inputs: 
-#     filename - string of the filename, to be given by the IC team
-#     path - string of the common directory, given by the Git(?)
-
-#     Output:
-#     Array of the loaded data having shape (N,3),
-#     where N is number of particles,
-#     3 is the coordinates
-#     '''
-#     return np.load(path+filename)
-
-
-# def save_data_np(data, filename, path):
-#     ''' 
-#     Save the updated position or velocity arrays as numpy files
-    
-#     Inputs:
-#     filename - string of the filename, chosen by the timesteps team
-#     path - string of the common directory, given by the Git(?)
-#     data - numpy arrays/class objects of shape (B, 3) containing position or velocity.
-
-#     Output:
-#     None
-#     '''
-#     return np.save(data, path+filename)
-
 def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True):
     ''' 
-    Euler integration of the position and velocity according to
-    r(t+Delta t) = r(t) + v(t) * Delta t
-    v(t+Delta t) = v(t) + a(t) * Delta t
     Carries out the integration for each particle for one time step
     
     Inputs:
@@ -100,15 +67,12 @@ def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True):
     for i, time_step in zip(range(batch),range(0,tot_time, delta_t)): # for each time step, carry out the evolution for all BHs
         if (leapfrog):
             # Leapfrog Integration
-            leapfrog_calculation(data)
+            result = leapfrog_integrator(data, delta_t)
         else:
             # Euler integration
-            recalculate_accelerations(data)  # provided in Forces.py
-            for BH in data:  # assumes the BH objects are already loaded with initial values
-                BH.position += (BH.velocity/ KM_PER_KPC) * delta_t # Euler integration (formula given above)
-                BH.velocity += BH.acceleration * delta_t # Euler integration (formula given above)
+            result = euler_integrator(data, delta_t)
         count += 1
-        data_lst.append(copy.deepcopy(data))
+        data_lst.append(result)
         if count == batch:
             # save_data_pkl(data_lst, f'data_batch{(time_step+1)//num_steps}.pkl', path)  # saving as a pkl file right now
             save_data_pkl(data_lst, f'data_batch{i+1}.pkl', path)  # saving as a pkl file right now
@@ -117,7 +81,7 @@ def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True):
             count = 0
             data_lst = []
 
-def leapfrog_calculation(data, delta_t):
+def leapfrog_integrator(data, delta_t):
     """
     Updating position and velocity of BH objects with conserving phase space volume (symplectic integrator).
 
@@ -126,11 +90,13 @@ def leapfrog_calculation(data, delta_t):
     delta_t - The timestep for each round of update
     
     Output:
-    None - updating BH objects inplace
+    result - list of Blackhole object
     
     """
     delta_half = delta_t / 2
     recalculate_accelerations(data) # Get acceleartion with current position
+
+    result = []
 
     # First Kick and Drift
     for BH in data:
@@ -143,50 +109,31 @@ def leapfrog_calculation(data, delta_t):
     # Last Kick
     for BH in data:
         BH.velocity += BH.acceleration * delta_half # Update the velocity with half of timestep and updated acceleration
+        result.append(BH.copy())
 
-    return None
+    return result
             
+def euler_integrator(data, delta_t):
+    """
+    Euler integration of the position and velocity according to
+    r(t+Delta t) = r(t) + v(t) * Delta t
+    v(t+Delta t) = v(t) + a(t) * Delta t
 
-# def update_params(data, tot_time, num_steps, delta_t):
-#     ''' 
-#     Euler integration of the position and velocity according to
-#     r(t+Delta t) = r(t) + v(t) * Delta t
-#     v(t+Delta t) = v(t) + a(t) * Delta t
-#     Carries out the integration for each particle for one time step
+    Inputs:
+    data - list of BH objects
+    delta_t - The timestep for each round of update
     
-#     Inputs:
-#     data - list of BH objects
-#     delta_t - float value of the time step for evolution
-#     tot_time - float value of the total time for evolution
-#     num_steps - integer value of the number of time steps to be saved in each batch
+    Output:
+    result - list of Blackhole object
     
-#     Output:
-#     None
-#     '''
-#     batch = tot_time // num_steps # number of batches
-#     count = 0 # goes from 0 to num_steps - 1
-#     pos_array = np.zeros(num_steps, len(data), 3) # array to store the position data of each batch
-#     vel_array = np.zeros(num_steps, len(data), 3) # array to store the velocity data of each batch
-    
-#     for i, BH in enumerate(data):  # assumes the BH objects are already loaded with initial values
-#         pos_array[0][i] = BH.position
-#         vel_array[0][i] = BH.velocity
-#         for time_step in range(tot_time): 
-#             recalculate_acceleration_due_to_gravity(data)
-#             BH.position += BH.velocity * delta_t
-#             BH.velocity += BH.acceleration * delta_t
-#             count += 1
-#             pos_array[count][i] = BH.position
-#             vel_array[count][i] = BH.velocity
-#             if count == batch:
-#                 save_data_pkl(pos_array, f'pos_batch{(time_step+1)//num_steps}_body{i+1}.pkl', path)
-#                 save_data_pkl(vel_array, f'vel_batch{(time_step+1)//num_steps}_body{i+1}.pkl', path)
-#                 count = 0
-#                 pos_array[0][i] = BH.position
-#                 vel_array[0][i] = BH.velocity
-            
-#    
-
+    """
+    recalculate_accelerations(data)  # provided in Forces.py
+    result = []
+    for BH in data:  # assumes the BH objects are already loaded with initial values
+        BH.position += (BH.velocity/ KM_PER_KPC) * delta_t # Euler integration (formula given above)
+        BH.velocity += BH.acceleration * delta_t # Euler integration (formula given above)
+        result.append(BH.copy())
+    return result
 
 def simulation(initial_file, output_folder, tot_time, delta_t, nsteps):
     """
