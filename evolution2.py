@@ -2,8 +2,6 @@ from Forces import *
 import os
 import pickle
 import numpy as np
-import copy
-from collections import deque
 
 KM_PER_KPC = 3.0856776e16 # number of km in kpc for using velocity to update position
 
@@ -66,11 +64,10 @@ def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True):
     None - All output files are saved as picke file
     '''
 
-    batch_idx = 1
+    batch_idx = 0
     count = 0 # goes from 0 to num_steps - 1, used to check when to save the data  
     data_lst = [data] # initialized with the starting data, stores the evolved data batch-wise
-    
-    for time_step in range(0, tot_time, delta_t): # for each time step, carry out the evolution for all BHs
+    for i, timestep in enumerate(np.arange(0, tot_time, delta_t)): # for each time step, carry out the evolution for all BHs
         if (leapfrog):
             # Leapfrog Integration
             result = leapfrog_integrator(data, delta_t)
@@ -165,7 +162,7 @@ def simulation(initial_file, output_folder, tot_time, delta_t, nsteps):
     update_params(inital, tot_time, nsteps, delta_t, output_folder)
 
 print('Yay! The evolution2.py file is being used!')
-print('\nNeed to call the simulation function properly to ensure it works though :)')
+# print('\nNeed to call the simulation function properly to ensure it works though :)')
 
 # Example usage by calling the simulation function using arbitrary parameters and names
 # simulation1 = simulation('initial_conditions.pkl', './', 100, 0.01, 10)
