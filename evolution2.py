@@ -3,6 +3,7 @@ import os
 import pickle
 import numpy as np
 import copy
+from collections import deque
 
 KM_PER_KPC = 3.0856776e16 # number of km in kpc for using velocity to update position
 
@@ -39,7 +40,12 @@ def save_data_pkl(data, filename, path):
     Output:
     None
     '''
+    # check if the folder exit
+    os.makedirs(path) if not os.path.exists(path) else None 
+
+    # join folder with filename
     file_path = os.path.join(path, filename)
+
     with open(file_path, 'wb') as f:
         pickle.dump(data, f)
 
@@ -60,11 +66,11 @@ def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True):
     None - All output files are saved as picke file
     '''
 
-    batch = int(tot_time // num_steps) # number of batches
+    batch_idx = 1
     count = 0 # goes from 0 to num_steps - 1, used to check when to save the data  
     data_lst = [data] # initialized with the starting data, stores the evolved data batch-wise
     
-    for i, time_step in zip(range(batch),range(0,tot_time, delta_t)): # for each time step, carry out the evolution for all BHs
+    for time_step in range(0, tot_time, delta_t): # for each time step, carry out the evolution for all BHs
         if (leapfrog):
             # Leapfrog Integration
             result = leapfrog_integrator(data, delta_t)
@@ -73,13 +79,16 @@ def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True):
             result = euler_integrator(data, delta_t)
         count += 1
         data_lst.append(result)
-        if count == batch:
-            # save_data_pkl(data_lst, f'data_batch{(time_step+1)//num_steps}.pkl', path)  # saving as a pkl file right now
-            save_data_pkl(data_lst, f'data_batch{i+1}.pkl', path)  # saving as a pkl file right now
-
+        if count == num_steps:
+            save_data_pkl(data_lst, f'data_batch{batch_idx}.pkl', path)  # saving as a pkl file right now
+            batch_idx += 1
             # resets the values for the next batch
             count = 0
             data_lst = []
+    
+    # Save any remaining timesteps
+    if (data_lst):
+        save_data_pkl(data_lst, f"data_batch{batch_idx}.pkl", path)
 
 def leapfrog_integrator(data, delta_t):
     """
