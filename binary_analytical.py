@@ -65,7 +65,7 @@ class AnalyticalCheck():
         # Read the data from each batch and store in the above arrays
         # for batch in batch_list:
         with open(f'{path}/data_batch{self.tot_times}.pkl', 'rb') as f:
-            BH_data_final = pickle.load(f)
+            BH_data_final = pickle.load(f)['data']
 
         if np.shape(BH_data_final)[-1] != 2:
             raise ValueError("Analytical solution only exists for the two-body problem. Limit number of black holes to 2.")

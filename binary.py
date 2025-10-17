@@ -1,114 +1,25 @@
-import numpy as np 
 from pint import UnitRegistry
 from BlackHoles_Struct import BlackHole
 from ICs import generate_initial_conditions
 from evolution2 import simulation
+import os
+import numpy as np 
 import pickle
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.animation import FuncAnimation
 
-### PLAN - 
-
-### 1) assign initial m, x and v to the two black holes (flag for random (from ICs team) vs custom) 
-
-### 2) call the evolve_BH function from timesteps team (set inputs such as total timesteps)
-
-### 3) check against analytical solution (need to write a plotting_function)
-
-# Step 1 
-
-# this is the function expected from ics team
-
-def generate_binary_ICs(N_BH, custom_vals = None):
-    # outlines the structure expected from the ICs team
-    # we demand that there be a custom_vals option as defined here, so that we can test out 
-    # simple cases corresponding to specific (instead of random) initial positions and velocities
-    """
-    inputs:
-    N_BH: total number of black holes in the simulation
-    custom_vals: contains the user-specified values for masses, positions and velocities. 
-                 should be a dictionary like {'mass' : np array shape (N_BH, ), 'postion' : np array shape (N_BH, 3) ,'velocity' : np array shape (N_BH, 3)} 
-    
-    outputs:
-    BH_data_ic: a list of BH objects initialized with the initial values of mass, positions, and velocities
-    """
-
-    # this is the 'black hole data', and will eventually store the BH objects after initialization
-    # BH_data_ic = []
-
-    if custom_vals != None:
-        # if every physical quantity is in the same dict, 
-        init_BH_values = custom_vals    
-
-        # if they are assigned as separate np arrays, 
-        init_BH_masses = custom_vals['mass']    
-        init_BH_positions = custom_vals['position']
-        init_BH_velocities = custom_vals['velocity']
-
-        # the above choice depends on how the ics team have implemented it
-
-        ## Load the custom_vals into Class objects
-        list_of_BH = []
-        for i in range(init_BH_values['N']):
-            BH = BlackHole( init_BH_masses[i], init_BH_positions[i], init_BH_velocities[i] )
-            list_of_BH.append(BH)
-
-        ## Save the file
-        with open('BH_data_ic.pkl', 'wb') as handle:
-            pickle.dump(list_of_BH, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    else:
-        # properly sample init_BH_values (team ICs work)
-        ##
-        read_from_file = True   # set to False if you want random values
-
-    # for i in range(N_BH):
-    #     BH_data_ic.append(Black_hole(init_BH_values))
-    # or if they are assigned as separate np arrays, 
-    #     BH_data_ic.append(Black_hole(init_BH_masses, init_BH_positions, init_BH_velocities))
-
-
-# example call - 
-# one example of custom values 
-## Change the digit format in the array to float
-custom_vals = { 'N': 2,
-                'mass': np.array([1.0e7, 1.0e7]), 
-                'position': np.array([[1., 0., 0.], [-1., 0., 0.]]), 
-                'velocity': np.array([[0. ,3.2791 ,0.], [0. ,-3.2791 ,0.]])}
-
-## Calculate the velocities for binary stars
-## Set the unit system first
+## Set the unit system
 ureg = UnitRegistry()
 vel_unit = ureg.km / ureg.s
 dist_unit = ureg.kpc
 mass_unit = ureg.kg * 1.98892e30
 G = 4.301e-3 * (1e-3 * ureg.kpc) / mass_unit * (vel_unit) ** 2 
 
-## Calculate the velocity 
-r = np.linalg.norm( custom_vals['position'][1] - custom_vals['position'][0] )
-velocity = np.sqrt( G * custom_vals['mass'][0] * mass_unit / (2 * r * dist_unit)  ) / vel_unit
-accel = (G * custom_vals['mass'][0] * mass_unit / (r* dist_unit)**2).to('km/s**2') / (vel_unit / ureg.s)
-
-assert np.isclose( velocity.magnitude , 3.2791, atol=1e-4), "Velocity calculation error"
-
-# custom_vals['velocity'][0] = np.array([0.,  velocity, 0.])
-# custom_vals['velocity'][1] = np.array([0., -velocity, 0.])
-
-# now initialize the black holes with mass, positions, and velocities using the function supplied by the ics team
-# N_BH is the number of BHs, BH_data is the list of length N_BH containing BH objects 
-BH_data = generate_binary_ICs(N_BH = 2, custom_vals = custom_vals)   
-
-# or load it from some file as
-with open('BH_data_ic.pkl', 'rb') as f:
-    BH_data_ic = pickle.load(f)
-
-# The below code is the test section for generating analytical dataset
-generate_analy_dataset = False
-
-while generate_analy_dataset:
+## Test section for generating analytical dataset
+def generate_analy_dataset( BH_data_ic ):
     # Based on the simulation and the example
-    ics = BH_data_ic
+    ics = BH_data_ic['data']
 
     R = np.linalg.norm(ics[0].position - ics[1].position) / 2
     V = np.linalg.norm(ics[0].velocity)
@@ -159,14 +70,79 @@ while generate_analy_dataset:
             BH = BlackHole( ics[j].mass, BH_data_pos[i][j], BH_data_vel[i][j] )
             list_of_BH.append(BH)
 
-        # Save the file
+        ## Save the file
+        # If the directory does not exist, create it
         Save_Dir = "./data_test/"
+        if not os.path.exists(Save_Dir):
+            os.makedirs(Save_Dir)
         with open( Save_Dir + 'BH_data_%03d.pkl' % i, 'wb') as handle:
             pickle.dump([list_of_BH], handle, protocol=pickle.HIGHEST_PROTOCOL)
     
-    # End the loop
-    break
+def generate_binary_ICs(N_BH, custom_vals = None, analy_sets = False):
+    # outlines the structure expected from the ICs team
+    # we demand that there be a custom_vals option as defined here, so that we can test out 
+    # simple cases corresponding to specific (instead of random) initial positions and velocities
+    """
+    inputs:
+    N_BH: total number of black holes in the simulation
+    custom_vals: contains the user-specified values for masses, positions and velocities. 
+                 should be a dictionary like {'mass' : np array shape (N_BH, ), 'postion' : np array shape (N_BH, 3) ,'velocity' : np array shape (N_BH, 3)} 
+    
+    outputs:
+    BH_data_ic: a list of BH objects initialized with the initial values of mass, positions, and velocities
+    """
 
+    # this is the 'black hole data', and will eventually store the BH objects after initialization
+    # BH_data_ic = []
+
+    if custom_vals != None:
+        # if every physical quantity is in the same dict, 
+        init_BH_values = custom_vals    
+
+        # if they are assigned as separate np arrays, 
+        init_BH_masses = custom_vals['mass']    
+        init_BH_positions = custom_vals['position']
+        init_BH_velocities = custom_vals['velocity']
+
+        # the above choice depends on how the ics team have implemented it
+
+        ## Load the custom_vals into Class objects
+        list_of_BH = []
+        for i in range(init_BH_values['N']):
+            BH = BlackHole( init_BH_masses[i], init_BH_positions[i], init_BH_velocities[i] )
+            list_of_BH.append(BH)
+
+        data = dict()
+        data['data'] = list_of_BH
+        ## Save the file
+        with open('BH_data_ic.pkl', 'wb') as handle:
+            pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+        # If required, generate the analytical dataset for this binary system
+        if analy_sets:
+            generate_analy_dataset( data )
+
+# example call - 
+# one example of custom values 
+## Change the digit format in the array to float
+custom_vals = { 'N': 2,
+                'mass': np.array([1.0e7, 1.0e7]), 
+                'position': np.array([[1., 0., 0.], [-1., 0., 0.]]), 
+                'velocity': np.array([[0. ,3.2791 ,0.], [0. ,-3.2791 ,0.]])}
+
+## Test the velocities for binary stars
+r = np.linalg.norm( custom_vals['position'][1] - custom_vals['position'][0] )
+velocity = np.sqrt( G * custom_vals['mass'][0] * mass_unit / (2 * r * dist_unit)  ) / vel_unit
+
+assert np.isclose( velocity.magnitude , 3.2791, atol=1e-4), "Velocity in custom_vals error"
+
+# now initialize the black holes with mass, positions, and velocities using the function supplied by the ics team
+# N_BH is the number of BHs, BH_data is the list of length N_BH containing BH objects 
+BH_data = generate_binary_ICs(N_BH = 2, custom_vals = custom_vals, analy_sets = False)   
+
+# or load it from some file as
+with open('BH_data_ic.pkl', 'rb') as f:
+    BH_data_ic = pickle.load(f)
 
 ICS_path = "./BH_data_ic.pkl"
 output_dir = "./data/"
