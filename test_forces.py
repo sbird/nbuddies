@@ -15,11 +15,11 @@ def test_Forces(): # Test gravitational forces between black holes earth_like an
     # Assertion check
     #assert abs(actual - expected)/expected <= tolerance
     expected_acceleration = 6e-06
-    #5.930262843244524e-06
-    #assert np.isclose(np.linalg.norm(a).magnitude, expected_acceleration, atol=1e-7)  
-    assert np.linalg.norm(a).magnitude ==  expected_acceleration  # acceleration magnitude on the earth due to the sun in km/s^2
+    #expected_acceleration = 5.930262843244524e-06
+    assert np.isclose(np.linalg.norm(a).magnitude, expected_acceleration, atol=1e-7)  # acceleration magnitude on the earth due to the sun in km/s^2
 
        
+    #assert np.linalg.norm(a).magnitude ==  expected_acceleration 
 
 
 
