@@ -89,8 +89,9 @@ G = 4.301e-3 * (1e-3 * ureg.kpc) / mass_unit * (vel_unit) ** 2
 r = np.linalg.norm( custom_vals['position'][1] - custom_vals['position'][0] )
 velocity = np.sqrt( G * custom_vals['mass'][0] * mass_unit / (2 * r * dist_unit)  ) / vel_unit
 accel = (G * custom_vals['mass'][0] * mass_unit / (r* dist_unit)**2).to('km/s**2') / (vel_unit / ureg.s)
-# print("Velocity: %.3f km/s" % velocity)
-# print("Acceleration: %.3e km/s**2" % accel )
+
+assert np.isclose( velocity.magnitude , 3.2791, atol=1e-4), "Velocity calculation error"
+
 # custom_vals['velocity'][0] = np.array([0.,  velocity, 0.])
 # custom_vals['velocity'][1] = np.array([0., -velocity, 0.])
 
@@ -171,8 +172,8 @@ ICS_path = "./BH_data_ic.pkl"
 output_dir = "./data/"
 
 # Implement the evolution code here
-Total_time = 10**17               # Total evoultion time in seconds
-n_snapshots = 50                    # Number of the output snapshots
+Total_time = 5*10**17               # Total evoultion time in seconds
+n_snapshots = 100                   # Number of the output snapshots
 delta_t_fraction = n_snapshots      # How many steps between two snapshots
                                     # Due to the issue in output functions, set this to be the same as n_snapshots 
                                     # to get an expected output files

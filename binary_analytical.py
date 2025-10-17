@@ -78,6 +78,7 @@ class AnalyticalCheck():
                 self.m1 = BH_data_final[0][0].mass * mass_unit# mass of BH 1
                 self.m2 = BH_data_final[0][1].mass * mass_unit # mass of BH 2
         # assuming the time step stacking to be done such that the last dimension is the number of total timesteps 
+        self.transform_coords()
 
 #######################################################
 
@@ -138,17 +139,19 @@ class AnalyticalCheck():
         else:
             print(f"Angular momentum is NOT conserved at the {tol_frac*100} % level from the starting value")
 
-        if np.all(energy - energy[0] < tol_frac * energy[0]):
+        if np.all((energy - energy[0]) / energy[0] < tol_frac):
             print(f"Energy is conserved at the {np.max(energy/energy[0] - 1)*100:.4f} % level from the starting value")
         else:
             print(f"Energy is NOT conserved at the {tol_frac*100} % level from the starting value")
         # seems like a better option because more explicitly states the level it is conserved at? 
 
         # assert np.all(ang_mom - ang_mom[0] < tol_frac * ang_mom[0]), f"Angular momentum is not conserved at the {tol_frac*100} % level from the starting value"
-        # assert np.all(energy - energy[0] < tol_frac * energy[0]), f"Energy is not conserved at the {tol_frac*100} % level from the starting value"
+        assert np.all((energy - energy[0]) / energy[0] < tol_frac), f"Energy is not conserved at the {tol_frac*100} % level from the starting value"
 
         self.ang_mom = ang_mom
         self.energy = energy
+
+        return ang_mom, energy
 
     ############################################################
 
@@ -205,15 +208,7 @@ class AnalyticalCheck():
 ###############################################################
 
 
-###############################################################
 
-    def wrapper_for_analytical_check(self, tol_frac):
-
-        self.transform_coords()
-        self.compute_energy_mom(tol_frac = tol_frac)
-        # self.trajectory_checker()
-
-
-output_dir = "./data"
-check1 = AnalyticalCheck(output_dir)
-check1.wrapper_for_analytical_check(tol_frac = 5e-2)
+# output_dir = "./data"
+# check1 = AnalyticalCheck(output_dir)
+# check1.wrapper_for_analytical_check(tol_frac = 5e-2)
