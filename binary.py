@@ -128,7 +128,9 @@ while generate_analy_dataset:
     phi_2 = np.arccos( np.dot((ics[1].position - COM), np.array([R, 0, 0])))
 
     for i in range(1, 101):
-        # Calculate the position of two black hole
+        # Calculate the position of two black hole for 100 data points divided equally on the circle
+        # position = R [ cos(phi), sin(phi), 0]
+        # velocity = V [-sin(phi), cos(phi), 0]
         phi = i / 100 * 2 * np.pi
         # pos1: position of BlackHole 1
         # pos2: position of BlackHole 2
@@ -169,7 +171,7 @@ ICS_path = "./BH_data_ic.pkl"
 output_dir = "./data/"
 
 # Implement the evolution code here
-Total_time = 2*10**17               # Total evoultion time in seconds
+Total_time = 10**17               # Total evoultion time in seconds
 n_snapshots = 50                    # Number of the output snapshots
 delta_t_fraction = n_snapshots      # How many steps between two snapshots
                                     # Due to the issue in output functions, set this to be the same as n_snapshots 
@@ -206,31 +208,29 @@ def loss_func( xdata, ydata, R ):
     loss = 0.
     for i in range(len(xdata)):
         loss += ((np.sqrt( xdata[i]**2 + ydata[i]**2 ) - R) / R)
-    return loss.to_reduced_units()
+    return loss
 
 # Update the plot and make it animated
 def update(frame):
     # Load the corresponding snapshot
-    with open( output_dir + 'data_batch' + str(frame) + '.pkl', 'rb') as f:
+    with open( output_dir + 'data_batch' + str(n_snapshots) + '.pkl', 'rb') as f:
         BH_data_final = pickle.load(f)
 
     xdata = []
     ydata = []
-    for i in range(len(BH_data_final[-1])):
-        xdata.append(BH_data_final[-1][i].position[0])
-        ydata.append(BH_data_final[-1][i].position[1])
+    for frame in range(frame + 1):
+        for i in range(2):
+            xdata.append(BH_data_final[frame][i].position[0])
+            ydata.append(BH_data_final[frame][i].position[1])
 
     xdata = xdata[-2:]
     ydata = ydata[-2:]
 
     ln.set_data(xdata, ydata)
-    loss = loss_func(xdata, ydata, R).m
+    loss = loss_func(xdata, ydata, R)
     loss_text.set_text(f'Loss: {loss:.4f}')
     return ln, loss_text
 
 ani = FuncAnimation(fig, update, frames=np.arange(n_snapshots),
                     init_func=init, blit=True)
 ani.save('binary_simulation.gif', fps=5)
-
-# check1 = AnalyticalCheck(BH_data_final)
-# check1.wrapper_for_analytical_check(tol_frac = 1e-3)
