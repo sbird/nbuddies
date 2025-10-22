@@ -95,7 +95,7 @@ def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True):
     for i, timestep in enumerate(np.arange(0, tot_time, delta_t)): # for each time step, carry out the evolution for all BHs
         if (leapfrog):
             # Leapfrog Integration
-            result = leapfrog_integrator(data, delta_t)
+            result = leapfrog_integrator(data, delta_t, timestep)
         else:
             # Euler integration
             result = euler_integrator(data, delta_t)
@@ -114,7 +114,7 @@ def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True):
         files = [data_lst, delta_t, tot_time, num_steps]
         save_data_pkl(files, f"data_batch{batch_idx}.pkl", path)
 
-def leapfrog_integrator(data, delta_t):
+def leapfrog_integrator(data, delta_t, timestep):
     """
     Updating position and velocity of BH objects with conserving phase space volume (symplectic integrator).
     
@@ -126,13 +126,15 @@ def leapfrog_integrator(data, delta_t):
     Inputs:
     data - list of BH objects
     delta_t - The timestep for each round of update
+    time_step - current time step index (to check if acceleration needs recalculation)
     
     Output:
     result - list of Blackhole object
     
     """
     delta_half = delta_t / 2
-    recalculate_accelerations(data) # Get acceleartion with current position
+    if timestep == 0:
+        recalculate_accelerations(data) # Get acceleartion with current position
 
     result = []
 
@@ -188,10 +190,10 @@ def simulation(initial_file, output_folder, tot_time, delta_t, nsteps):
         
     """
     # load initial condition
-    inital = load_data_pkl(initial_file) # should be a list of BH objects
+    data, inital = load_data_pkl(initial_file) # should be a list of BH objects
 
     # Run Simulation
-    update_params(inital, tot_time, nsteps, delta_t, output_folder)
+    update_params(data, tot_time, nsteps, delta_t, output_folder)
 
 print('Yay! The evolution2.py file is being used!')
 # print('\nNeed to call the simulation function properly to ensure it works though :)')
