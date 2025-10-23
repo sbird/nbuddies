@@ -2,7 +2,10 @@
 import numpy as np
 
 class BlackHole():
-    def __init__(self, mass: float, position: list[float], velocity: list[float], acceleration : list[float] = [0,0,0]):
+    def __init__(self, mass: float, position: list[float], velocity: list[float],
+                acceleration : list[float] = [0,0,0], 
+                 jerk: list[float] = [0, 0, 0], 
+                 snap: list[float] = [0, 0, 0]):
         """
         Define data structure --> struct 
         mass, position (3D), velocity (3D), and acceleration (initialized to zero by default)
@@ -18,15 +21,24 @@ class BlackHole():
             velocity vector of black hole in km/s
         acceleration : list[float], default [0,0,0]
             acceleration vector of black hole in km/s^2
+        jerk : list[float], default is [0,0,0]
+            3D jerk vector (in km/s^3)
+        snap : list[float], default is [0,0,0]
+            3D snap vector (in km/s^4)
         """
         assert mass > 0, "Mass must be positive" #checks mass is positive 
         assert len(position) == 3, "Position must be a 3D vector" #checks that position is a vector
         assert len(velocity) == 3, "Velocity must be a 3D vector" #checks that velocity is a vector
+        assert len(acceleration) == 3, "Acceleration must be a 3D vector"
+        assert len(jerk) == 3, "Jerk must be a 3D vector"
+        assert len(snap) == 3, "Snap must be a 3D vector"
        
         self.mass = mass 
         self.position = np.array(position) 
         self.velocity = np.array(velocity) 
         self.acceleration = np.array(acceleration)
+        self.jerk = np.array(jerk)
+        self.snap = np.array(snap)
 
     def displacement(self, other):
         """
@@ -76,4 +88,4 @@ class BlackHole():
         BlackHole
             Copy of the black hole object
         """
-        return BlackHole(self.mass, self.position, self.velocity, self.acceleration)
+        return BlackHole(self.mass, self.position, self.velocity, self.acceleration, self.jerk, self.snap)
