@@ -114,6 +114,69 @@ def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True):
         files = [data_lst, delta_t, tot_time, num_steps]
         save_data_pkl(files, f"data_batch{batch_idx}.pkl", path)
 
+
+#########################
+
+
+def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfrog = True):
+    ''' 
+    Carries out the integration for each particle for one time step
+    
+    Inputs:
+    data - list of BH objects
+    eta - constant that decides the relation between timestep and acceleration, jerk, snap. Needs to be optimized.  
+    tot_time - float value of the total time for evolution
+    num_steps - integer value of the number of time steps to be saved in each batch
+                given by batch = tot_time // (num_batches * delta_t)
+    path - string of the common directory, given by the Git(?)
+    leapfrog - True if want leapfrog integration, False if want simple Euler integration (default True)
+    
+    Output:
+    None - All output files are saved as picke file
+    '''
+
+    batch_idx = 0
+    count = 0 # goes from 0 to num_steps - 1, used to check when to save the data  
+    data_lst = [data] # initialized with the starting data, stores the evolved data batch-wise
+    running_time = 0  # time elapsed in the simulation, will end when running_time == tot_time
+    
+    while running_time < tot_time:
+        
+        # block to decidet the delta_t value for this iteration - 
+        delta_t_BH = np.zeros(len(data))
+        for BH in data:
+            delta_t_BH = comp_adaptive_dt(BH.acceleration, BH.jerk, BH.snap, eta)  # compute adaptive value
+        delta_t = np.min(delta_t_BH)   # choose the minimum among all BHs
+
+        if (leapfrog):
+            # Leapfrog Integration
+            result = leapfrog_integrator(data, delta_t, timestep)
+        else:
+            # Euler integration
+            result = euler_integrator(data, delta_t)
+        running_time += delta_t
+        count += 1
+        data_lst.append(result)
+        if count == num_steps:
+            files = [data_lst, delta_t, tot_time, num_steps] 
+            # the above way of saving means we are saving the value of timestep in the last simulation of each batch
+            # will keep it like that for now so that we can access the typical values of timesteps, later can just save the eta as metadata
+
+            save_data_pkl(files, f'data_batch{batch_idx}.pkl', path)  # saving as a pkl file right now
+            batch_idx += 1
+            # resets the values for the next batch
+            count = 0
+            data_lst = []
+    
+    # Save any remaining timesteps
+    if (data_lst):
+        files = [data_lst, delta_t, tot_time, num_steps]
+        save_data_pkl(files, f"data_batch{batch_idx}.pkl", path)
+
+
+#########################
+
+
 def leapfrog_integrator(data, delta_t, timestep):
     """
     Updating position and velocity of BH objects with conserving phase space volume (symplectic integrator).
@@ -175,7 +238,32 @@ def euler_integrator(data, delta_t):
         result.append(BH.copy())
     return result
 
-def simulation(initial_file, output_folder, tot_time, delta_t, nsteps):
+#Function to compute adaptive timestep
+def comp_adaptive_dt(acc, jerk, snap, eta):
+   """
+    Inputs: acc, jerk, snap, and eta 
+    We will need the magnitude for acc, jerk, and snap
+    Using our function from class:
+    dt = eta * ((jerk/acc)**2 + (snap/acc))**(-1/2)
+    Because we are dividing by acc we need to ensure that we don't divide by zero
+    We can divide instead by a_mag_safe = np.maximum(a_mag, "small factor")
+    Returns the adaptive timestep
+    """
+   #Calculates magnitudes for acc, jerk, and snap
+   a_mag = np.linalg.norm(acc, axis=1)
+   j_mag = np.linalg.norm(jerk, axis=1)
+   s_mag = np.linalg.norm(snap, axis=1)
+   
+   if a_mag < 1e-12: 
+       print("acceleration value fell below 1e-12")   # just want to see if this ever happens
+
+   a_mag_safe = np.maximum(a_mag, 1e-12) #If the acceleration is zero this replaces it with 1e-12 to avoid division by zero 
+   
+   dt = eta / np.sqrt((j_mag / a_mag_safe)**2 + (s_mag / a_mag_safe)) #computes dt 
+   return dt
+
+
+def simulation(initial_file, output_folder, tot_time, delta_t, nsteps, adaptive_dt = True, eta = None):
     """
     Wrapper Function for the simulation of time evolve N-body Problem
     
@@ -185,15 +273,24 @@ def simulation(initial_file, output_folder, tot_time, delta_t, nsteps):
     tot_time : total amount of time of the simulation
     delta_t : size of the timestep
     nsteps : number of steps for each saving of the batch
+    adaptive_dt: whether to use the adaptive timestep formula using eta
+    eta: the constant for the adpative timestep formula. Cannot be none if adpative_dt is True. 
     
     Outputs:
         
     """
+    
     # load initial condition
     data, inital = load_data_pkl(initial_file) # should be a list of BH objects
 
     # Run Simulation
-    update_params(data, tot_time, nsteps, delta_t, output_folder)
+    if adaptive_dt:
+        if eta is None:
+            raise ValueError("Adaptive timestepping (adaptive_dt = True) requires a value of eta to be given.")
+        else:
+            update_params_adaptive_timestep(data, tot_time, nsteps, eta, output_folder)
+    else:
+        update_params(data, tot_time, nsteps, delta_t, output_folder)
 
 print('Yay! The evolution2.py file is being used!')
 # print('\nNeed to call the simulation function properly to ensure it works though :)')
