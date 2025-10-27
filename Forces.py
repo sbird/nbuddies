@@ -30,11 +30,12 @@ def _comp_acceleration(BH_i : BlackHole, BH_j : BlackHole):
     - Calculate the acceleration using our gravitational constant and converts to km/s**2
     Returns np.ndarray with acceleration vector for BH_i in km/s**2
     """
-    pos_vec = BH_i.displacement(BH_j)
-    mag_vec = np.linalg.norm(pos_vec) 
-    assert mag_vec != 0, "BHs cannot be at the same position - division by zero" #Checks that the magnitude vector is not zero (i.e. same BHs)
-    accel = GG * BH_j.mass * ureg.solarmass * (pos_vec)/(mag_vec)**3 / ureg.kpc**2
-    return accel.to("km/s**2") / (ureg.km / ureg.s**2) #Converts acceleration to km/s^2
+    pos_vec = BH_i.displacement(BH_j) * ureg.kpc
+    mag_vec = (np.linalg.norm(pos_vec))
+    assert mag_vec != 0, "BHs cannot be at the same position - division by zero"
+    accel = GG * BH_j.mass * ureg.solarmass * (pos_vec) / (mag_vec ** 3)
+    accel = accel.to("km/s**2")  
+    return accel
 
 def recalculate_accelerations(BHs: list[BlackHole]):
     """
