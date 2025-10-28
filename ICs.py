@@ -41,45 +41,26 @@ def generate_radius(a: float) -> float:
     x = np.random.uniform()
     return a*(x**(-2/3) - 1)**(-1/2) # Derived from Equation (A2)
 
-def generate_position(radius: float) -> list[float]:
+def generate_random_vector_of_magnitude(magnitude : float) -> list[float]:
     """
-    Generate the position [kpc] vector with components (x, y, z) from uniform probability distribution
-    Input:
-        radius, radius [kpc] of black hole
-    Output:
-        position vector [x, y, z]
+    Generate a random vector from istropic probability distribution
+    
+    Parameters
+    ----------
+    magnitude
+        magnitude of random vector
+    
+    Returns
+    -------
+    list[float]
+        a random vector of desired magnitude
     """
     x_1 = np.random.uniform()
     x_2 = np.random.uniform()
-    z = (1 - 2*x_1)*radius # Equation (A3)
-    x = np.sqrt(radius**2 - z**2) * np.cos(2*np.pi*x_2)
-    y = np.sqrt(radius**2 - z**2) * np.sin(2*np.pi*x_2)
+    z = (1 - 2*x_1)*magnitude # Equation (A3)
+    x = np.sqrt(magnitude**2 - z**2) * np.cos(2*np.pi*x_2)
+    y = np.sqrt(magnitude**2 - z**2) * np.sin(2*np.pi*x_2)
     return [x, y, z]
-
-def generate_velocity(velocity: float) -> list[float]:
-    """
-    Generate the velocity [km/s] vector with components (u, v, w) from uniform probability distribution
-    Input:
-        velocity, escape velocity [km/s] from calling calculate_velocity()
-    Output:
-        velocity vector [u, v, w]
-    """
-    x_1 = np.random.uniform()
-    x_2 = np.random.uniform()
-    w = (1 - 2*x_1)*velocity # Equation (A6)
-    u = np.sqrt(velocity**2 - w**2) * np.cos(2 *np.pi*x_2)
-    v = np.sqrt(velocity**2 - w**2) * np.sin(2 *np.pi*x_2)
-    return [u, v, w]
-
-def calculate_velocity(v_esc: float, q: float) -> float:
-    """
-    Calculate velocity [km/s] using velocity modulus and escape velocity [km/s]
-    Inputs:
-        v_esc, escape velocity from calculate_escape_velocity(), and q, velocity modulus from find_q()
-    Output, 
-        velocity
-    """
-    return q * v_esc
 
 def find_q() -> float:
     """
@@ -117,7 +98,7 @@ def calculate_escape_velocity(radius: float, N: int, m: float, a: float) -> floa
     """
     return np.sqrt(2*GG*N*m) * (a**2 + radius**2)**(-1/4) # Derived from Equation (A4)
 
-def generate_plummer_initial_conditions(n_blackholes: int, mass: float, scale: float) -> tuple[BlackHole, float, list[float], list[float]]: 
+def generate_plummer_initial_conditions(n_blackholes: int, mass: float, scale: float) -> tuple[list[BlackHole], float]: 
     """
     A function to create n_blackholes with positions, velocities, and equal masses
     by generating initial coniditions for N-body black hole simulation using the Plummer model.
@@ -131,30 +112,23 @@ def generate_plummer_initial_conditions(n_blackholes: int, mass: float, scale: f
         positions, position [kpc] vector of each BlackHole object
         velocities, velocity [km/s] vector of each BlackHole object
     """    
-    positions = np.zeros((n_blackholes, 3)) # Prepares an array to hold all positions, initially all zeros. 
-                                            # These are the (x, y, z) for that black hole.
-    velocities = np.zeros((n_blackholes, 3)) # Prepares an array to hold all velocities, initially all zeros. 
-                                             # These are the (vx, vy, vz) for that black hole.    
-   
-    # an example of positions: [[x1,y1,z1],[x2,y2,z2],...,[xn,yn,zn]], 
-    # where xi,yi,zi are the coordinates of the i-th black hole  
+    blackholes = np.empty(n_blackholes, BlackHole) # Prepares an array to hold all blackholes
+
     for i in range(n_blackholes):
         r = generate_radius(scale)
-        positions[i] = generate_position(r)
-
-        v_esc = calculate_escape_velocity(r, i, mass, scale)
+        
+        v_esc = calculate_escape_velocity(r, n_blackholes, mass, scale)
         q = find_q()
-        v = calculate_velocity(v_esc, q)
-        velocities[i] = generate_velocity(v)
-
-    # create black hole instances
-    blackholes = []
-    for i in range(n_blackholes):
-        bh = BlackHole(mass, positions[i], velocities[i])
-        blackholes.append(bh)    
+        v = q*v_esc
+        
+        blackholes[i] = BlackHole(
+            mass,
+            generate_random_vector_of_magnitude(r),
+            generate_random_vector_of_magnitude(v)
+        )
 
     pkl.dump(blackholes, open(f"{path_to_save_pkl_file}/test_plummer1.pkl", "wb")) # save the blackholes list to a pickle file    
-    return blackholes, mass, positions, velocities    
+    return blackholes, mass    
 
 if __name__ == "__main__":
     # Set random seed for reproducibility
