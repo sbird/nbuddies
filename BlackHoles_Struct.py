@@ -21,9 +21,9 @@ class BlackHole():
             velocity vector of black hole in km/s
         acceleration : list[float], default [0,0,0]
             acceleration vector of black hole in km/s^2
-        jerk : list[float], default is [0,0,0]
+        jerk : list[float], default [0,0,0]
             3D jerk vector (in km/s^3)
-        snap : list[float], default is [0,0,0]
+        snap : list[float], default [0,0,0]
             3D snap vector (in km/s^4)
         """
         assert mass > 0, "Mass must be positive" #checks mass is positive 
