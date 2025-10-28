@@ -35,6 +35,12 @@ class Node():
             assert (bh.position[2] >= self.bounds[2,0] and bh.position[2] <= self.bounds[2,1]), f"black hole not enclosed in node z: {bh.position[2]} outside [{self.bounds[2,0]}, {self.bounds[2,1]}]"
         
         self.mass = None
+        self.center_of_mass = None
+
+    position = property(
+        fget = lambda self : self.center_of_mass,
+        doc = "returns center of mass when position is called upon to work as drop in for blackhole"
+    )
 
     def add_child(self, child : Node):
         """
@@ -167,7 +173,6 @@ def build_tree(blackholes : list[BlackHole]):
     _initalize_tree(root)
     _compute_node_tree(root)
 
-    print(root)
     return root
 
 def _initalize_tree(root : Node):
@@ -278,7 +283,7 @@ def _initalize_tree(root : Node):
 
     #build branches for children
     for node in root.children:
-        _initalize_all_branches(node)
+        _initalize_tree(node)
 
 def _compute_node_tree(root : Node):
     """
@@ -290,6 +295,7 @@ def _compute_node_tree(root : Node):
         root node of the tree
     """
     root.mass = 0.0
+    root.center_of_mass = np.zeros(3)
     if root.has_children():
         for child in root.children:
             if child.mass is None:

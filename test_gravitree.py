@@ -13,8 +13,16 @@ def test_gravitree():
     com /= np.sum([bh.mass for bh in blackholes]) 
     root = build_tree(blackholes)
 
+    print(root)
+
     assert (
         np.isclose(com[0], root.center_of_mass[0]) and
         np.isclose(com[1], root.center_of_mass[1]) and
         np.isclose(com[2], root.center_of_mass[2])
     ), "center of mass calculation in gravitree is inaccurate"
+
+    assert (
+        np.isclose(blackholes[0].displacement(root)[0], (root.center_of_mass - blackholes[0].position)[0]) and
+        np.isclose(blackholes[0].displacement(root)[1], (root.center_of_mass - blackholes[0].position)[1]) and
+        np.isclose(blackholes[0].displacement(root)[2], (root.center_of_mass - blackholes[0].position)[2])
+    ), "Displacements between nodes and black holes are not being calculated correctly"
