@@ -114,6 +114,77 @@ def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True):
         files = [data_lst, delta_t, tot_time, num_steps]
         save_data_pkl(files, f"data_batch{batch_idx}.pkl", path)
 
+
+def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfrog = True):
+    ''' 
+    Carries out the integration for each particle for one time step
+    
+    Inputs:
+    data - list of BH objects
+    eta - constant that decides the relation between timestep and acceleration, jerk, snap. Needs to be optimized.  
+    tot_time - float value of the total time for evolution
+    num_steps - integer value of the number of time steps to be saved in each batch
+                given by batch = tot_time // (num_batches * delta_t)
+    path - string of the common directory, given by the Git(?)
+    leapfrog - True if want leapfrog integration, False if want simple Euler integration (default True)
+    
+    Output:
+    None - All output files are saved as picke file
+    '''
+
+    batch_idx = 0
+    count = 0 # goes from 0 to num_steps - 1, used to check when to save the data  
+    data_lst = [data] # initialized with the starting data, stores the evolved data batch-wise
+    running_time = 0 * ureg.sec  # time elapsed in the simulation, will end when running_time == tot_time
+    # needs to be initialized with units because recalculate_acceleration now assigns units acceleration
+
+    recalculate_accelerations(data) # Get acceleration with current position
+    recalculate_jerks(data)
+    recalculate_snaps(data)        
+
+    while running_time.magnitude < tot_time:
+
+        # block to decide the delta_t value for this iteration - 
+        delta_t_BH = np.zeros(len(data)) * ureg.s
+        for i, BH in enumerate(data):
+            delta_t_BH[i] = comp_adaptive_dt(BH.acceleration, BH.jerk, BH.snap, eta)  # compute adaptive value
+        delta_t = np.min(delta_t_BH)   # choose the minimum among all BHs
+
+        print(f'time_elapsed: {running_time.magnitude/tot_time*100:.2f}% of tot_time; delta_t for this iteration: {delta_t}')
+        # this statement can be useful to keep a check on how fast the simulation is proceeding for a given eta
+
+        if (leapfrog):
+            # Leapfrog Integration
+            result = leapfrog_integrator(data, delta_t, running_time)
+        else:
+            # Euler integration
+            result = euler_integrator(data, delta_t)
+        running_time += delta_t
+        count += 1
+        data_lst.append(result)
+        if count == num_steps:
+            files = [data_lst, delta_t, tot_time, num_steps] 
+            # the above way of saving means we are saving the value of timestep in the last simulation of each batch
+            # will keep it like that for now so that we can access the typical values of timesteps, later can just save the eta as metadata
+
+            save_data_pkl(files, f'data_batch{batch_idx}.pkl', path)  # saving as a pkl file right now
+            batch_idx += 1
+            # resets the values for the next batch
+            count = 0
+            data_lst = []
+        
+        recalculate_accelerations(data) 
+        recalculate_jerks(data)
+        recalculate_snaps(data) 
+        # these need to be done before the next computation of dt (next iteration of the loop)
+
+    # Save any remaining timesteps
+    if (data_lst):
+        files = [data_lst, delta_t, tot_time, num_steps]
+        save_data_pkl(files, f"data_batch{batch_idx}.pkl", path)
+
+
+
 def leapfrog_integrator(data, delta_t, timestep):
     """
     Updating position and velocity of BH objects with conserving phase space volume (symplectic integrator).
@@ -140,15 +211,17 @@ def leapfrog_integrator(data, delta_t, timestep):
 
     # First Kick and Drift
     for BH in data:
-        BH.velocity += BH.acceleration * delta_half # Update the velocity with half of timestep
-        BH.position += (BH.velocity/ KM_PER_KPC) * delta_t # Update the position with the new velocity and with full timestep
+        BH.velocity += (BH.acceleration * delta_half).magnitude # Update the velocity with half of timestep
+        BH.position += ( (BH.velocity/ KM_PER_KPC) * delta_t ).magnitude # Update the position with the new velocity and with full timestep
+    # need to update velocity and position without units in order to keep it compatible with the rest of the code
+    # hence the .magnitude
 
     # Recalculation of the acceleration
     recalculate_accelerations(data)
 
     # Last Kick
     for BH in data:
-        BH.velocity += BH.acceleration * delta_half # Update the velocity with half of timestep and updated acceleration
+        BH.velocity += (BH.acceleration * delta_half).magnitude # Update the velocity with half of timestep and updated acceleration
         result.append(BH.copy())
 
     return result
@@ -170,12 +243,39 @@ def euler_integrator(data, delta_t):
     recalculate_accelerations(data)  # provided in Forces.py
     result = []
     for BH in data:  # assumes the BH objects are already loaded with initial values
-        BH.position += (BH.velocity/ KM_PER_KPC) * delta_t # Euler integration (formula given above)
-        BH.velocity += BH.acceleration * delta_t # Euler integration (formula given above)
+        BH.position += ( (BH.velocity/ KM_PER_KPC) * delta_t ).magnitude # Euler integration (formula given above)
+        BH.velocity += (BH.acceleration * delta_t).magnitude # Euler integration (formula given above)
         result.append(BH.copy())
     return result
 
-def simulation(initial_file, output_folder, tot_time, delta_t, nsteps):
+
+#Function to compute adaptive timestep
+def comp_adaptive_dt(acc, jerk, snap, eta):
+    """
+    Inputs: acc, jerk, snap, and eta 
+    We will need the magnitude for acc, jerk, and snap
+    Using our function from class:
+    dt = eta * ((jerk/acc)**2 + (snap/acc))**(-1/2)
+    Because we are dividing by acc we need to ensure that we don't divide by zero
+    We can divide instead by a_mag_safe = np.maximum(a_mag, "small factor")
+    Returns the adaptive timestep
+    """
+    #Calculates magnitudes for acc, jerk, and snap
+    a_mag = np.linalg.norm(acc)
+    j_mag = np.linalg.norm(jerk)
+    s_mag = np.linalg.norm(snap)
+
+    dt = eta / np.sqrt((j_mag / a_mag)**2 + (s_mag / a_mag)) #computes dt 
+
+    # print("a_mag = ", a_mag)
+    # print("j_mag = ", j_mag)
+    # print("s_mag = ", s_mag)  # these will have proper units attached with them
+    # print('dt =', dt) # this will have the correct units (seconds) as well
+
+    return dt
+
+
+def simulation(initial_file, output_folder, tot_time, nsteps, delta_t = None, adaptive_dt = False, eta = None):
     """
     Wrapper Function for the simulation of time evolve N-body Problem
     
@@ -185,15 +285,25 @@ def simulation(initial_file, output_folder, tot_time, delta_t, nsteps):
     tot_time : total amount of time of the simulation
     delta_t : size of the timestep
     nsteps : number of steps for each saving of the batch
+    adaptive_dt: whether to use the adaptive timestep formula using eta
+    eta: the constant for the adpative timestep formula. Cannot be none if adpative_dt is True. 
     
     Outputs:
         
     """
+
     # load initial condition
     data, inital = load_data_pkl(initial_file) # should be a list of BH objects
 
     # Run Simulation
-    update_params(data, tot_time, nsteps, delta_t, output_folder)
+    if adaptive_dt:
+        if eta is None:
+            raise ValueError("Adaptive timestepping (adaptive_dt = True) requires a value of eta to be given.")
+        else:
+            update_params_adaptive_timestep(data, tot_time, nsteps, eta, output_folder)
+    else:
+        update_params(data, tot_time, nsteps, delta_t, output_folder)
+
 
 print('Yay! The evolution2.py file is being used!')
 # print('\nNeed to call the simulation function properly to ensure it works though :)')

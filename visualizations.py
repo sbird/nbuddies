@@ -6,7 +6,7 @@ import numpy as np
 
 nbuddies_path = os.path.dirname(os.path.realpath(__file__))
 
-def movie_3D(tail_length: int = 10):
+def movie_3D(tail_length: int = 10, tot_nstep_eta = None):
     """
     Loads data and makes movie of motion in 3D space with tails behind them
 
@@ -14,6 +14,8 @@ def movie_3D(tail_length: int = 10):
     ----------
     tail_length : int, default 10
         length of tail trailing behind points
+    tot_nstep_eta: str, used to dynamically save the resulting movies with info about 
+                    total time (sec), num of timesteps per batch, eta for adaptive timestep computation
     """
     
     #set up
@@ -26,7 +28,7 @@ def movie_3D(tail_length: int = 10):
     
     # Load last batch and initialize data structures
     with open(nbuddies_path + f"/data/data_batch{last_batch_num}.pkl", 'rb') as file: # open dir of batches
-        data = pickle.load(file)[0] # load pk data files with last batch number
+        data = pickle.load(file)['data'][0] # load pk data files with last batch number
     N = len(data) # length of data files
 
     #Calculate the maximum plot range based on particle positions
@@ -38,7 +40,7 @@ def movie_3D(tail_length: int = 10):
 
     #getting info from sim start
     with open(nbuddies_path + "/data/data_batch0.pkl", 'rb') as file:
-        init_data = pickle.load(file)[0]
+        init_data = pickle.load(file)['data'][0]
     #Create 3D array to store tail positions
     plotting_data = np.zeros([N, 3, tail_length]) # instantiate array of zeros with dimensions N x 3 x tail_length
     for n in range(N):
@@ -54,7 +56,7 @@ def movie_3D(tail_length: int = 10):
             plotting_data[:,:,j] = plotting_data[:,:,j+1] # move data window forward by 1
         #Load current frame data
         with open(nbuddies_path + f"/data/data_batch{i}.pkl", 'rb') as file: # open dir to pk files
-            data = pickle.load(file)[0] # load pk files
+            data = pickle.load(file)['data'][0] # load pk files
         #Update tail with current particle positions
         for n in range(N):
             plotting_data[n, :, -1] = data[n].position
@@ -89,16 +91,18 @@ def movie_3D(tail_length: int = 10):
         plt.savefig(nbuddies_path + f"/movie_dump/trajectories_{i}.png", dpi=300, bbox_inches='tight') # save fig in dir
         plt.close()
 
-    _recompile_movie_3D() # Combine saved frames into video using ffmpeg
+    _recompile_movie_3D(tot_nstep_eta) # Combine saved frames into video using ffmpeg
 
-def _recompile_movie_3D():
+def _recompile_movie_3D(tot_nstep_eta):
     """
     Deletes movie if it exists then recreates it by compiling the pngs in movie_dump
+    tot_nstep_eta: str, used to dynamically save the resulting movies with info about 
+                    total time (sec), num of timesteps per batch, eta for adaptive timestep computation
     """
 
-    if os.path.exists(nbuddies_path+"/trajectories.mkv"): # checks if path exists
-        os.remove(nbuddies_path+"/trajectories.mkv") # if it does, remove path to old movie file
-    os.system("ffmpeg -framerate 12 -start_number 0 -i "+nbuddies_path+"/movie_dump/trajectories_%01d.png -q:v 0 "+nbuddies_path+"/trajectories.mkv") # recreate movie
+    if os.path.exists(nbuddies_path+f"/trajectories_{tot_nstep_eta}.mkv"): # checks if path exists
+        os.remove(nbuddies_path+f"/trajectories_{tot_nstep_eta}.mkv") # if it does, remove path to old movie file
+    os.system("ffmpeg -framerate 12 -start_number 0 -i "+nbuddies_path+"/movie_dump/trajectories_%01d.png -q:v 0 "+nbuddies_path+f"/trajectories_{tot_nstep_eta}.mkv") # recreate movie
 
 
 def _find_last_batch_num() -> int:
@@ -115,5 +119,3 @@ def _find_last_batch_num() -> int:
     while os.path.exists(nbuddies_path + f"/data/data_batch{i}.pkl"): # while path of ith data batch exists
         i += 1 # increment i
     return i - 1 # i is number corresponding to last data batch number
-
-movie_3D()
