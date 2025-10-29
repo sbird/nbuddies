@@ -112,7 +112,7 @@ def generate_plummer_initial_conditions(n_blackholes: int, mass: float, scale: f
         positions, position [kpc] vector of each BlackHole object
         velocities, velocity [km/s] vector of each BlackHole object
     """    
-    blackholes = np.empty(n_blackholes, BlackHole) # Prepares an array to hold all blackholes
+    blackholes = []    # list to hold all black holes (used instead of an array to make it compatible with the loading function)
 
     for i in range(n_blackholes):
         r = generate_radius(scale)
@@ -121,14 +121,16 @@ def generate_plummer_initial_conditions(n_blackholes: int, mass: float, scale: f
         q = find_q()
         v = q*v_esc
         
-        blackholes[i] = BlackHole(
+        blackholes.append(BlackHole(
             mass,
             generate_random_vector_of_magnitude(r),
             generate_random_vector_of_magnitude(v)
-        )
+        ))
 
-    pkl.dump(blackholes, open(f"{path_to_save_pkl_file}/test_plummer1.pkl", "wb")) # save the blackholes list to a pickle file    
-    return blackholes, mass    
+    blackholes_dict = {'data': blackholes}
+
+    pkl.dump(blackholes_dict, open(f"{path_to_save_pkl_file}/test_plummer1.pkl", "wb")) # save the blackholes list to a pickle file    
+    return blackholes_dict, mass    
 
 if __name__ == "__main__":
     # Set random seed for reproducibility
