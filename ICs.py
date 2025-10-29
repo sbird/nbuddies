@@ -131,7 +131,7 @@ def calculate_escape_velocity(radius: float, N: int, m: float, a: float) -> floa
     """
     return np.sqrt(2*GG*N*m) * (a**2 + radius**2)**(-1/4) # Derived from Equation (A4)
 
-def generate_plummer_initial_conditions(n_blackholes: int, mass: float, ratio: float, scale: float) -> tuple[BlackHole, float, list[float], list[float]]: 
+def generate_plummer_initial_conditions(n_blackholes: int, initial_mass: float, ratio: float, scale: float) -> tuple[BlackHole, float, list[float], list[float]]: 
     """
     A function to create n_blackholes with positions, velocities, and equal masses
     by generating initial coniditions for N-body black hole simulation using the Plummer model.
@@ -167,15 +167,17 @@ def generate_plummer_initial_conditions(n_blackholes: int, mass: float, ratio: f
         bh = BlackHole(mass[i], positions[i], velocities[i])
         blackholes.append(bh)    
 
-    pkl.dump(blackholes, open(f"{path_to_save_pkl_file}/test_plummer1.pkl", "wb")) # save the blackholes list to a pickle file    
-    return blackholes, mass, positions, velocities    
+    blackholes_dict = {'data': blackholes}
+
+    pkl.dump(blackholes_dict, open(f"{path_to_save_pkl_file}/test_plummer1.pkl", "wb")) # save the blackholes list to a pickle file    
+    return blackholes_dict, mass, positions, velocities    
 
 if __name__ == "__main__":
     # Set random seed for reproducibility
     np.random.seed(43)
     
     # Generate initial conditions for 20 black holes
-    n = 100 # number of black holes
+    n = 3 # number of black holes
     initial_mass = 1e6        # solar masses per BH
     m1_ratio = 0.1
     scale = 1      #scale (a value) 
@@ -190,6 +192,6 @@ if __name__ == "__main__":
     # Provides the mass, position, and velocity for each black holes
     for i in range(n):
         print(f"\nBlack hole {i+1}:")
-        print(f"  Mass: {blackholes[i].mass:.1f} M_sun")
-        print(f"  Position: {blackholes[i].position} kpc")
-        print(f"  Velocity: {blackholes[i].velocity} km/s")
+        print(f"  Mass: {blackholes['data'][i].mass:.1f} M_sun")
+        print(f"  Position: {blackholes['data'][i].position} kpc")
+        print(f"  Velocity: {blackholes['data'][i].velocity} km/s")
