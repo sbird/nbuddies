@@ -30,6 +30,20 @@ Start of active code
 # The functions below are based on the paper Aarseth et al. 1974
 # https://articles.adsabs.harvard.edu/pdf/1974A%26A....37..183A
 
+def generate_mass(n, inital_mass, ratio):
+    mass_1 = initial_mass
+    mass_2 = initial_mass / ratio
+    n0 = n - np.round(ratio*n)
+
+    mass = np.zeros(n)
+    for i in range (n):
+        if i < n0:
+            mass[i] = mass_1
+        else:
+            mass[i] = mass_2
+    return mass 
+
+
 def generate_radius(a: float) -> float:
     """
     Generate the radius [kpc] of a black hole using a random number from a uniform probability distribution
@@ -41,26 +55,45 @@ def generate_radius(a: float) -> float:
     x = np.random.uniform()
     return a*(x**(-2/3) - 1)**(-1/2) # Derived from Equation (A2)
 
-def generate_random_vector_of_magnitude(magnitude : float) -> list[float]:
+def generate_position(radius: float) -> list[float]:
     """
-    Generate a random vector from istropic probability distribution
-    
-    Parameters
-    ----------
-    magnitude
-        magnitude of random vector
-    
-    Returns
-    -------
-    list[float]
-        a random vector of desired magnitude
+    Generate the position [kpc] vector with components (x, y, z) from uniform probability distribution
+    Input:
+        radius, radius [kpc] of black hole
+    Output:
+        position vector [x, y, z]
     """
     x_1 = np.random.uniform()
     x_2 = np.random.uniform()
-    z = (1 - 2*x_1)*magnitude # Equation (A3)
-    x = np.sqrt(magnitude**2 - z**2) * np.cos(2*np.pi*x_2)
-    y = np.sqrt(magnitude**2 - z**2) * np.sin(2*np.pi*x_2)
+    z = (1 - 2*x_1)*radius # Equation (A3)
+    x = np.sqrt(radius**2 - z**2) * np.cos(2*np.pi*x_2)
+    y = np.sqrt(radius**2 - z**2) * np.sin(2*np.pi*x_2)
     return [x, y, z]
+
+def generate_velocity(velocity: float) -> list[float]:
+    """
+    Generate the velocity [km/s] vector with components (u, v, w) from uniform probability distribution
+    Input:
+        velocity, escape velocity [km/s] from calling calculate_velocity()
+    Output:
+        velocity vector [u, v, w]
+    """
+    x_1 = np.random.uniform()
+    x_2 = np.random.uniform()
+    w = (1 - 2*x_1)*velocity # Equation (A6)
+    u = np.sqrt(velocity**2 - w**2) * np.cos(2 *np.pi*x_2)
+    v = np.sqrt(velocity**2 - w**2) * np.sin(2 *np.pi*x_2)
+    return [u, v, w]
+
+def calculate_velocity(v_esc: float, q: float) -> float:
+    """
+    Calculate velocity [km/s] using velocity modulus and escape velocity [km/s]
+    Inputs:
+        v_esc, escape velocity from calculate_escape_velocity(), and q, velocity modulus from find_q()
+    Output, 
+        velocity
+    """
+    return q * v_esc
 
 def find_q() -> float:
     """
@@ -98,7 +131,7 @@ def calculate_escape_velocity(radius: float, N: int, m: float, a: float) -> floa
     """
     return np.sqrt(2*GG*N*m) * (a**2 + radius**2)**(-1/4) # Derived from Equation (A4)
 
-def generate_plummer_initial_conditions(n_blackholes: int, mass: float, scale: float) -> tuple[list[BlackHole], float]: 
+def generate_plummer_initial_conditions(n_blackholes: int, mass: float, ratio: float, scale: float) -> tuple[BlackHole, float, list[float], list[float]]: 
     """
     A function to create n_blackholes with positions, velocities, and equal masses
     by generating initial coniditions for N-body black hole simulation using the Plummer model.
@@ -112,33 +145,41 @@ def generate_plummer_initial_conditions(n_blackholes: int, mass: float, scale: f
         positions, position [kpc] vector of each BlackHole object
         velocities, velocity [km/s] vector of each BlackHole object
     """    
-    blackholes = np.empty(n_blackholes, BlackHole) # Prepares an array to hold all blackholes
-
+    positions = np.zeros((n_blackholes, 3)) # Prepares an array to hold all positions, initially all zeros. 
+                                            # These are the (x, y, z) for that black hole.
+    velocities = np.zeros((n_blackholes, 3)) # Prepares an array to hold all velocities, initially all zeros. 
+                                             # These are the (vx, vy, vz) for that black hole.    
+    mass = generate_mass(n_blackholes, initial_mass, ratio)
+    # an example of positions: [[x1,y1,z1],[x2,y2,z2],...,[xn,yn,zn]], 
+    # where xi,yi,zi are the coordinates of the i-th black hole  
     for i in range(n_blackholes):
         r = generate_radius(scale)
-        
-        v_esc = calculate_escape_velocity(r, n_blackholes, mass, scale)
+        positions[i] = generate_position(r)
+
+        v_esc = calculate_escape_velocity(r, i, mass[i], scale)
         q = find_q()
-        v = q*v_esc
-        
-        blackholes[i] = BlackHole(
-            mass,
-            generate_random_vector_of_magnitude(r),
-            generate_random_vector_of_magnitude(v)
-        )
+        v = calculate_velocity(v_esc, q)
+        velocities[i] = generate_velocity(v)
+
+    # create black hole instances
+    blackholes = []
+    for i in range(n_blackholes):
+        bh = BlackHole(mass[i], positions[i], velocities[i])
+        blackholes.append(bh)    
 
     pkl.dump(blackholes, open(f"{path_to_save_pkl_file}/test_plummer1.pkl", "wb")) # save the blackholes list to a pickle file    
-    return blackholes, mass    
+    return blackholes, mass, positions, velocities    
 
 if __name__ == "__main__":
     # Set random seed for reproducibility
     np.random.seed(43)
     
     # Generate initial conditions for 20 black holes
-    n = 20 # number of black holes
-    mass = 1e6        # solar masses per BH
-    scale = 1       #scale (a value) 
-    blackholes, masses, positions, velocities = generate_plummer_initial_conditions(n, mass, scale)
+    n = 100 # number of black holes
+    initial_mass = 1e6        # solar masses per BH
+    m1_ratio = 0.1
+    scale = 1      #scale (a value) 
+    blackholes, masses, positions, velocities = generate_plummer_initial_conditions(n, initial_mass, m1_ratio, scale)
     pkl.dump(blackholes, open(f"{path_to_save_pkl_file}/test1.pkl", "wb"))
     
     # Prints the number of black holes generated and the range of positions and velocities generated
