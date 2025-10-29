@@ -1,7 +1,6 @@
 from __future__ import annotations
 from BlackHoles_Struct import BlackHole
 import numpy as np
-from ICs import generate_plummer_initial_conditions
 
 class Node():
     def __init__(self, bounds : list[list[float : 2] : 3], enclosed_blackholes : list[BlackHole] = np.empty(0)):
@@ -27,12 +26,12 @@ class Node():
         assert self.bounds[0,1] > self.bounds[0,0], "x_max < x_min in node bounds"
         assert self.bounds[1,1] > self.bounds[1,0], "y_max < y_min in node bounds"
         assert self.bounds[2,1] > self.bounds[2,0], "z_max < z_min in node bounds"
+
+        self.crossection = np.linalg.norm([b[1] - b[0] for b in self.bounds])
         
         self.enclosed_blackholes = np.array(enclosed_blackholes)
         for bh in enclosed_blackholes:
-            assert (bh.position[0] >= self.bounds[0,0] and bh.position[0] <= self.bounds[0,1]), f"black hole not enclosed in node x: {bh.position[0]} outside [{self.bounds[0,0]}, {self.bounds[0,1]}]"
-            assert (bh.position[1] >= self.bounds[1,0] and bh.position[1] <= self.bounds[1,1]), f"black hole not enclosed in node y: {bh.position[1]} outside [{self.bounds[1,0]}, {self.bounds[1,1]}]"
-            assert (bh.position[2] >= self.bounds[2,0] and bh.position[2] <= self.bounds[2,1]), f"black hole not enclosed in node z: {bh.position[2]} outside [{self.bounds[2,0]}, {self.bounds[2,1]}]"
+            assert self.is_inside(bh.position), f"black hole not enclosed in node x: {bh.position} outside {self.bounds}"
         
         self.mass = None
         self.center_of_mass = None
@@ -41,7 +40,27 @@ class Node():
         fget = lambda self : self.center_of_mass,
         doc = "returns center of mass when position is called upon to work as drop in for blackhole"
     )
+    
+    def is_inside(self, position : list[float]):
+        """
+        Returns if position is inside the node
+        
+        Parameters
+        ----------
+        position : list[float]
+            the position to be checked
 
+        Returns
+        -------
+        bool
+            whether or not it's inside
+        """
+        for i in range(3):
+            if position[i] < self.bounds[i,0] or position[i] > self.bounds[i,1]:
+                return False
+        
+        return True
+    
     def add_child(self, child : Node):
         """
         Attempts to add child and errors if node is already full
@@ -68,9 +87,7 @@ class Node():
         bh : BlackHole
             black hole to be added
         """
-        assert (bh.position[0] >= self.bounds[0,0] and bh.position[0] <= self.bounds[0,1]), f"black hole not enclosed in node x: {bh.position[0]} outside [{self.bounds[0,0]}, {self.bounds[0,1]}]"
-        assert (bh.position[1] >= self.bounds[1,0] and bh.position[1] <= self.bounds[1,1]), f"black hole not enclosed in node y: {bh.position[1]} outside [{self.bounds[1,0]}, {self.bounds[1,1]}]"
-        assert (bh.position[2] >= self.bounds[2,0] and bh.position[2] <= self.bounds[2,1]), f"black hole not enclosed in node z: {bh.position[2]} outside [{self.bounds[2,0]}, {self.bounds[2,1]}]"
+        assert self.is_inside(bh.position), f"black hole not enclosed in node x: {bh.position} outside {self.bounds}"
 
         self.enclosed_blackholes = np.append(self.enclosed_blackholes, bh)
 
@@ -160,12 +177,14 @@ def build_tree(blackholes : list[BlackHole]):
         np.max([np.abs(bh.position[1] - center[1]) for bh in blackholes]),
         np.max([np.abs(bh.position[2] - center[2]) for bh in blackholes])
     ])
+    #enfoce cubic lattice
+    box_radius = np.max(box_radii)
     # pad radii to prevent floating point error from making an extremal bh fall outside the box
-    box_radii *= 1.1
+    box_radius *= 1.1
     global_bounds = [
-        [center[0] - box_radii[0], center[0] + box_radii[0]],
-        [center[1] - box_radii[1], center[1] + box_radii[1]],
-        [center[2] - box_radii[2], center[2] + box_radii[2]],
+        [center[0] - box_radius, center[0] + box_radius],
+        [center[1] - box_radius, center[1] + box_radius],
+        [center[2] - box_radius, center[2] + box_radius],
     ]
 
     root = Node(global_bounds, blackholes)
@@ -296,17 +315,27 @@ def _compute_node_tree(root : Node):
     """
     root.mass = 0.0
     root.center_of_mass = np.zeros(3)
+    root.velocity = np.zeros(3)
+    root.acceleration = np.zeros(3)
     if root.has_children():
         for child in root.children:
             if child.mass is None:
                 _compute_node_tree(child)
             root.mass += child.mass
             root.center_of_mass += child.mass * child.center_of_mass
+            root.velocity += child.mass * child.velocity
+            root.acceleration += child.mass * child.acceleration
         if root.mass != 0:
             root.center_of_mass /= root.mass
+            root.velocity /= root.mass
+            root.acceleration /= root.mass
     else:
         for bh in root.enclosed_blackholes:
             root.mass += bh.mass
             root.center_of_mass += bh.mass * bh.position
+            root.velocity += bh.mass * bh.velocity
+            root.acceleration += bh.mass * bh.acceleration
         if root.mass != 0:
             root.center_of_mass /= root.mass
+            root.velocity /= root.mass
+            root.acceleration /= root.mass

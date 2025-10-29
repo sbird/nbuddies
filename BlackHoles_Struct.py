@@ -3,9 +3,9 @@ import numpy as np
 
 class BlackHole():
     def __init__(self, mass: float, position: list[float], velocity: list[float],
-                acceleration : list[float] = [0,0,0], 
-                 jerk: list[float] = [0, 0, 0], 
-                 snap: list[float] = [0, 0, 0]):
+                acceleration : list[float] = np.zeros(3), 
+                jerk: list[float] = np.zeros(3), 
+                snap: list[float] = np.zeros(3)):
         """
         Define data structure --> struct 
         mass, position (3D), velocity (3D), and acceleration (initialized to zero by default)
@@ -34,11 +34,11 @@ class BlackHole():
         assert len(snap) == 3, "Snap must be a 3D vector"
        
         self.mass = mass 
-        self.position = np.array(position) 
-        self.velocity = np.array(velocity) 
-        self.acceleration = np.array(acceleration)
-        self.jerk = np.array(jerk)
-        self.snap = np.array(snap)
+        self.position = np.asarray(position) 
+        self.velocity = np.asarray(velocity) 
+        self.acceleration = np.asarray(acceleration)
+        self.jerk = np.asarray(jerk)
+        self.snap = np.asarray(snap)
 
     def displacement(self, other):
         """

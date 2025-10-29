@@ -86,12 +86,12 @@ def test_plummer_ICs():
 
     #I prune the first entry as it's prone to large flucuations since the bin is small
     density_errors = density - plummer_rho(r_points)
-    density_rms_error = np.sqrt(np.sum(density_errors[1:]**2))
+    density_rms_error = np.sqrt(np.sum(density_errors[1:]**2) / len(density_errors[1:]))
     
     v_disp_errors = v_disp - plummer_vdisp(v_points)
-    v_disp_rms_error = np.sqrt(np.sum(v_disp_errors[1:]**2))
+    v_disp_rms_error = np.sqrt(np.sum(v_disp_errors[1:]**2) / len(v_disp_errors[1:]))
 
     print(density_rms_error/plummer_rho(0), v_disp_rms_error/plummer_vdisp(0))
 
-    assert density_rms_error/plummer_rho(0) < 0.1, "IC density doesn't match expectation"
-    assert v_disp_rms_error/plummer_vdisp(0) < 0.1, "IC velocity dispersion doesn't match expectation"
+    assert density_rms_error/plummer_rho(0) < 0.01, "IC density doesn't match expectation"
+    assert v_disp_rms_error/plummer_vdisp(0) < 0.01, "IC velocity dispersion doesn't match expectation"

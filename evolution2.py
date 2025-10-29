@@ -138,9 +138,7 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
     running_time = 0 * ureg.sec  # time elapsed in the simulation, will end when running_time == tot_time
     # needs to be initialized with units because recalculate_acceleration now assigns units acceleration
 
-    recalculate_accelerations(data) # Get acceleration with current position
-    recalculate_jerks(data)
-    recalculate_snaps(data)        
+    recalculate_dynamics(data) # Get acceleration with current position
 
     while running_time.magnitude < tot_time:
 
@@ -173,9 +171,7 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
             count = 0
             data_lst = []
         
-        recalculate_accelerations(data) 
-        recalculate_jerks(data)
-        recalculate_snaps(data) 
+        recalculate_dynamics(data) 
         # these need to be done before the next computation of dt (next iteration of the loop)
 
     # Save any remaining timesteps
@@ -205,7 +201,7 @@ def leapfrog_integrator(data, delta_t, timestep):
     """
     delta_half = delta_t / 2
     if timestep == 0:
-        recalculate_accelerations(data) # Get acceleartion with current position
+        recalculate_dynamics(data) # Get acceleartion with current position
 
     result = []
 
@@ -217,7 +213,7 @@ def leapfrog_integrator(data, delta_t, timestep):
     # hence the .magnitude
 
     # Recalculation of the acceleration
-    recalculate_accelerations(data)
+    recalculate_dynamics(data)
 
     # Last Kick
     for BH in data:
@@ -240,7 +236,7 @@ def euler_integrator(data, delta_t):
     result - list of Blackhole object
     
     """
-    recalculate_accelerations(data)  # provided in Forces.py
+    recalculate_dynamics(data)  # provided in Forces.py
     result = []
     for BH in data:  # assumes the BH objects are already loaded with initial values
         BH.position += ( (BH.velocity/ KM_PER_KPC) * delta_t ).magnitude # Euler integration (formula given above)
