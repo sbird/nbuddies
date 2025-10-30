@@ -1,9 +1,9 @@
-import unittest
-import pytest 
+import warnings
 from BlackHoles_Struct import BlackHole 
 from Forces import _comp_acceleration, recalculate_dynamics
 from ICs import generate_plummer_initial_conditions
 from pint import UnitRegistry
+from pint import UnitStrippedWarning
 import numpy as np
 
 ureg = UnitRegistry()
@@ -25,15 +25,19 @@ def test_tree():
     """
     tests tree calculation of forces against brute force computation
     """
-    blackholes = generate_plummer_initial_conditions(100, 20, 20)[0]
+    with warnings.catch_warnings():
+        #suppress unit stripping warnings inside this test
+        warnings.simplefilter("ignore", category=UnitStrippedWarning)
 
-    recalculate_dynamics(blackholes, use_tree=False)
+        blackholes = generate_plummer_initial_conditions(100, 20, 20)[0]
 
-    brute_force_accels = np.asarray([bh.acceleration for bh in blackholes])
+        recalculate_dynamics(blackholes, use_tree=False)
 
-    recalculate_dynamics(blackholes, use_tree=True)
+        brute_force_accels = np.asarray([bh.acceleration for bh in blackholes])
 
-    tree_accels = np.asarray([bh.acceleration for bh in blackholes])
+        recalculate_dynamics(blackholes, use_tree=True)
+
+        tree_accels = np.asarray([bh.acceleration for bh in blackholes])
 
     error = np.asarray([(tree_accels[i] - brute_force_accels[i])/brute_force_accels[i] for i in range(len(blackholes))])
 

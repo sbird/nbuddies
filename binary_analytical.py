@@ -1,4 +1,3 @@
-from importlib_metadata import files
 from BlackHoles_Struct import BlackHole
 import numpy as np 
 from pint import UnitRegistry

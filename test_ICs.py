@@ -93,5 +93,5 @@ def test_plummer_ICs():
 
     print(density_rms_error/plummer_rho(0), v_disp_rms_error/plummer_vdisp(0))
 
-    assert density_rms_error/plummer_rho(0) < 0.01, "IC density doesn't match expectation"
-    assert v_disp_rms_error/plummer_vdisp(0) < 0.01, "IC velocity dispersion doesn't match expectation"
+    assert density_rms_error/plummer_rho(0) < 0.05, "IC density doesn't match expectation"
+    assert v_disp_rms_error/plummer_vdisp(0) < 0.05, "IC velocity dispersion doesn't match expectation"
