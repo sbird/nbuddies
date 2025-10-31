@@ -12,6 +12,8 @@ from evolution2 import simulation
 from visualizations import movie_3D
 from pint import UnitRegistry 
 import pickle
+import shutil
+import os
 
 ureg = UnitRegistry()
 
@@ -27,10 +29,18 @@ tot = 5e16
 nstep = 10
 eta = 0.1
 
-simulation(initial_file = 'interesting_ICs_3body.pkl', output_folder = './data', tot_time = tot, nsteps = nstep, adaptive_dt = True, eta = eta)
+output_folder_data = "./data/"
+output_folder_movie = "./movie_dump/"
 
-# FIXME: any pre-existing movie_dump/ and data/ directories need to be deleted before running 
-# the following function, else it will partially overwrite and may give unexpected movies. 
+def check_directory(folder_path):
+    if os.path.exists(folder_path):
+        shutil.rmtree(folder_path)  # Remove the folder and all its contents
 
+    os.makedirs(folder_path)  #make new empty folder
+
+check_directory(output_folder_data)
+simulation(initial_file = 'BH_data_ic.pkl', output_folder = output_folder_data, tot_time = tot, nsteps = nstep, adaptive_dt = True, eta = eta)
+
+check_directory(output_folder_movie)
 movie_3D(tot_nstep_eta = f'{tot}_{nstep}_{eta}')
 # saves trajectories_{tot}_{nstep}_{eta}.mkv in the current directory
