@@ -28,9 +28,12 @@ def test_plummer_ICs():
     fig = plt.figure(figsize=(horz*3, vert*3), dpi=300)
     
     N = int(1e6)
-    a = 10*np.random.rand()
+    # a = 10*np.random.rand()
+    a = 4.9
+    ratio = 0.05
     m = 1e6
-    blackholes = generate_plummer_initial_conditions(N, m, a)[0]
+    blackholes = generate_plummer_initial_conditions(N, m, ratio, a)[0]
+    M = m * N
 
     r_magnitudes = np.array([np.linalg.norm(bh.position) for bh in blackholes])
 
@@ -49,7 +52,7 @@ def test_plummer_ICs():
         r.set_height(density[n])
 
     def plummer_rho(r):
-        return (3*m*N*a**2)/(4*np.pi*(a**2 + r**2)**(5/2))
+        return (3*M*a**2)/(4*np.pi*(a**2 + r**2)**(5/2))
 
     ax.plot(r_points, plummer_rho(r_points), label="theoretical")
     ax.vlines(x=a, ymin=0, ymax=1.1*plummer_rho(0), colors='r', linestyles='--', label="scale radius")
@@ -71,7 +74,7 @@ def test_plummer_ICs():
 
     ax.plot(v_points, v_disp, label="IC Code")
     def plummer_vdisp(r):
-        return GG*m*N/(6*np.sqrt(a**2 + r**2))
+        return GG*M/(6*np.sqrt(a**2 + r**2))
     ax.plot(v_points, plummer_vdisp(v_points), label="theoretical")
     ax.vlines(x=a, ymin=0, ymax=1.1*plummer_vdisp(0), colors='r', linestyles='--', label="scale radius")
     
@@ -95,3 +98,5 @@ def test_plummer_ICs():
 
     assert density_rms_error/plummer_rho(0) < 0.1, "IC density doesn't match expectation"
     assert v_disp_rms_error/plummer_vdisp(0) < 0.1, "IC velocity dispersion doesn't match expectation"
+
+test_plummer_ICs()

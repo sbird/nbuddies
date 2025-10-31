@@ -41,15 +41,17 @@ def generate_mass(n: int, initial_mass: float, ratio: float) -> list[float]:
         list[mass], mass [solar mass] of each black hole
     """
     mass_1 = initial_mass
-    mass_2 = initial_mass / ratio
+    mass_2 = initial_mass * 10
     n0 = n - np.round(ratio*n)
+    assert ratio < 0.1, "Ratio must be smaller than 0.1"
+    x = (1 - 10*ratio) / (1-ratio)  # Normalization factor to make sure total mass is similar to n*initial_mass
 
     mass = np.zeros(n)
     for i in range (n):
         if i < n0:
-            mass[i] = mass_1
+            mass[i] = mass_1 * x
         else:
-            mass[i] = mass_2
+            mass[i] = mass_2 * x
     return mass 
 
 def generate_radius(a: float) -> float:
@@ -107,18 +109,17 @@ def g(q: float) -> float:
     """
     return q**2*(1 - q**2)**(7/2) # Equation (A5)
 
-def calculate_escape_velocity(radius: float, N: int, m: float, a: float) -> float:
+def calculate_escape_velocity(radius: float, M: float, a: float) -> float:
     """
     Calculate escape velocity [km/s]
     Input:
         radius, radius [kpc] of black hole
-        N, number of black holes
-        m, mass [solar mass] of black holes such that total mass is mN
+        M, total mass [solar mass] of black holes
         a, scale black hole radius to kpc
     Output:
         escape velocity
     """
-    return np.sqrt(2*GG*N*m) * (a**2 + radius**2)**(-1/4) # Derived from Equation (A4)
+    return np.sqrt(2*GG*M) * (a**2 + radius**2)**(-1/4) # Derived from Equation (A4)
 
 def generate_plummer_initial_conditions(n_blackholes: int, initial_mass: float, ratio: float, scale: float) -> tuple[list[BlackHole], float]: 
     """
@@ -135,17 +136,18 @@ def generate_plummer_initial_conditions(n_blackholes: int, initial_mass: float, 
         velocities, velocity [km/s] vector of each BlackHole object
     """    
     blackholes = np.empty(n_blackholes, BlackHole) # Prepares an array to hold all blackholes  
-     
+
     mass = generate_mass(n_blackholes, initial_mass, ratio)
+    M = np.sum(mass)
     # an example of positions: [[x1,y1,z1],[x2,y2,z2],...,[xn,yn,zn]], 
     # where xi,yi,zi are the coordinates of the i-th black hole  
 
     for i in range(n_blackholes):
         r = generate_radius(scale)
         
-        v_esc = calculate_escape_velocity(r, n_blackholes, mass[i], scale)
+        v_esc = calculate_escape_velocity(r, M, scale)
         q = find_q()
-        v = q*v_esc
+        v = q*v_esc/(1-ratio)**2
         
         blackholes[i] = BlackHole(
             mass[i],
@@ -162,7 +164,7 @@ if __name__ == "__main__":
     # Generate initial conditions for 20 black holes
     n = 20              # number of black holes
     mass = 1e6          # solar masses per BH
-    m1_ratio = 0.1      # mass ratio between two types of black holes
+    m1_ratio = 0.01      # mass ratio between two types of black holes
     scale = 1           # scale (a value)
     blackholes, masses = generate_plummer_initial_conditions(n, mass, m1_ratio, scale)
     pkl.dump(blackholes, open(f"{path_to_save_pkl_file}/test1.pkl", "wb"))
