@@ -55,21 +55,22 @@ class AnalyticalCheck():
         ## list all the files in the directory and list the index of the batches
         files = os.listdir(path)
         batch_list = [int(i.split('h')[-1].split('.pkl')[0]) for i in files]
-        # batch_list.sort()
-        # self.tot_times = len(batch_list)  # total number of time steps including initial
-        self.tot_times = batch_list[0]  # total number of time steps including initial
+        # self.tot_times = batch_list[0]  # total number of time steps including initial
 
-        ## Store the data from all batches in an array
-        self.positions = np.array( self.tot_times * [np.zeros((2,3))] ) # shape = (num_batches, 2, 3)
-        self.velocities = np.array( self.tot_times * [np.zeros((2,3))] ) # shape = (num_batches, 2, 3)
         # Read the data from each batch and store in the above arrays
         # for batch in batch_list:
-        with open(f'{path}/data_batch{self.tot_times}.pkl', 'rb') as f:
+        
+        with open(f'{path}/data_batch{batch_list[0]}.pkl', 'rb') as f:
             BH_data_final = pickle.load(f)['data']
 
         if np.shape(BH_data_final)[-1] != 2:
             raise ValueError("Analytical solution only exists for the two-body problem. Limit number of black holes to 2.")
-
+        
+        self.tot_times = np.shape(BH_data_final)[0]  # total number of time steps including initial
+        
+        ## Store the data from all batches in an array
+        self.positions = np.array( self.tot_times * [np.zeros((2,3))] ) # shape = (num_batches, 2, 3)
+        self.velocities = np.array( self.tot_times * [np.zeros((2,3))] ) # shape = (num_batches, 2, 3)
         for batch in range(self.tot_times):
             for i in range(2):
                 self.positions[batch][i] = BH_data_final[-1][i].position # position of ith BH at this batch
@@ -90,7 +91,6 @@ class AnalyticalCheck():
         transforms the exisiting position and velocity coordinates into a single, relative coordinate
         which appears in the solution to the 2-body problem alongside the reduced mass. 
         """
-
         r1_vec = self.positions[:,0,:] * dist_unit # shape = (num_batches, 3)
         r2_vec = self.positions[:,1,:] * dist_unit # shape = (num_batches, 3)
         # both of these will be M x 3 arrays (with the 3rd column being always zero ideally)
@@ -209,6 +209,6 @@ class AnalyticalCheck():
 
 
 
-# output_dir = "./data"
-# check1 = AnalyticalCheck(output_dir)
-# check1.wrapper_for_analytical_check(tol_frac = 5e-2)
+output_dir = "./data"
+check1 = AnalyticalCheck(output_dir)
+check1.wrapper_for_analytical_check(tol_frac = 5e-2)

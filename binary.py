@@ -1,6 +1,5 @@
 from pint import UnitRegistry
 from BlackHoles_Struct import BlackHole
-from ICs import generate_initial_conditions
 from evolution2 import simulation
 import os
 import numpy as np 
@@ -148,7 +147,7 @@ ICS_path = "./BH_data_ic.pkl"
 output_dir = "./data/"
 
 # Implement the evolution code here
-Total_time = 5*10**17               # Total evoultion time in seconds
+Total_time = 10**19               # Total evoultion time in seconds
 n_snapshots = 100                   # Number of the output snapshots
 delta_t_fraction = n_snapshots      # How many steps between two snapshots
                                     # Due to the issue in output functions, set this to be the same as n_snapshots 
@@ -190,8 +189,9 @@ def loss_func( xdata, ydata, R ):
 # Update the plot and make it animated
 def update(frame):
     # Load the corresponding snapshot
-    with open( output_dir + 'data_batch' + str(n_snapshots) + '.pkl', 'rb') as f:
-        BH_data_final = pickle.load(f)
+    # with open( output_dir + 'data_batch' + str(n_snapshots) + '.pkl', 'rb') as f:
+    with open( output_dir + 'data_batch' + str(0) + '.pkl', 'rb') as f:
+        BH_data_final = pickle.load(f)['data'][1:]
 
     xdata = []
     ydata = []

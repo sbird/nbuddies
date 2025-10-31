@@ -30,6 +30,28 @@ Start of active code
 # The functions below are based on the paper Aarseth et al. 1974
 # https://articles.adsabs.harvard.edu/pdf/1974A%26A....37..183A
 
+def generate_mass(n: int, initial_mass: float, ratio: float) -> list[float]:
+    """
+    Generate mass [solar mass] of n black holes such that there are two types of masses
+    Input:
+        n, number of black holes
+        initial_mass, mass [solar mass] of first type of black holes
+        ratio, mass ratio between two types of black holes
+    Output:
+        list[mass], mass [solar mass] of each black hole
+    """
+    mass_1 = initial_mass
+    mass_2 = initial_mass / ratio
+    n0 = n - np.round(ratio*n)
+
+    mass = np.zeros(n)
+    for i in range (n):
+        if i < n0:
+            mass[i] = mass_1
+        else:
+            mass[i] = mass_2
+    return mass 
+
 def generate_radius(a: float) -> float:
     """
     Generate the radius [kpc] of a black hole using a random number from a uniform probability distribution
@@ -98,7 +120,7 @@ def calculate_escape_velocity(radius: float, N: int, m: float, a: float) -> floa
     """
     return np.sqrt(2*GG*N*m) * (a**2 + radius**2)**(-1/4) # Derived from Equation (A4)
 
-def generate_plummer_initial_conditions(n_blackholes: int, mass: float, scale: float) -> tuple[list[BlackHole], float]: 
+def generate_plummer_initial_conditions(n_blackholes: int, initial_mass: float, ratio: float, scale: float) -> tuple[list[BlackHole], float]: 
     """
     A function to create n_blackholes with positions, velocities, and equal masses
     by generating initial coniditions for N-body black hole simulation using the Plummer model.
@@ -112,22 +134,25 @@ def generate_plummer_initial_conditions(n_blackholes: int, mass: float, scale: f
         positions, position [kpc] vector of each BlackHole object
         velocities, velocity [km/s] vector of each BlackHole object
     """    
-    blackholes = np.empty(n_blackholes, BlackHole) # Prepares an array to hold all blackholes
+    blackholes = np.empty(n_blackholes, BlackHole) # Prepares an array to hold all blackholes  
+     
+    mass = generate_mass(n_blackholes, initial_mass, ratio)
+    # an example of positions: [[x1,y1,z1],[x2,y2,z2],...,[xn,yn,zn]], 
+    # where xi,yi,zi are the coordinates of the i-th black hole  
 
     for i in range(n_blackholes):
         r = generate_radius(scale)
         
-        v_esc = calculate_escape_velocity(r, n_blackholes, mass, scale)
+        v_esc = calculate_escape_velocity(r, n_blackholes, mass[i], scale)
         q = find_q()
         v = q*v_esc
         
         blackholes[i] = BlackHole(
-            mass,
+            mass[i],
             generate_random_vector_of_magnitude(r),
             generate_random_vector_of_magnitude(v)
         )
 
-    pkl.dump(blackholes, open(f"{path_to_save_pkl_file}/test_plummer1.pkl", "wb")) # save the blackholes list to a pickle file    
     return blackholes, mass    
 
 if __name__ == "__main__":
@@ -135,16 +160,17 @@ if __name__ == "__main__":
     np.random.seed(43)
     
     # Generate initial conditions for 20 black holes
-    n = 20 # number of black holes
-    mass = 1e6        # solar masses per BH
-    scale = 1       #scale (a value) 
-    blackholes, masses, positions, velocities = generate_plummer_initial_conditions(n, mass, scale)
+    n = 20              # number of black holes
+    mass = 1e6          # solar masses per BH
+    m1_ratio = 0.1      # mass ratio between two types of black holes
+    scale = 1           # scale (a value)
+    blackholes, masses = generate_plummer_initial_conditions(n, mass, m1_ratio, scale)
     pkl.dump(blackholes, open(f"{path_to_save_pkl_file}/test1.pkl", "wb"))
     
-    # Prints the number of black holes generated and the range of positions and velocities generated
-    print(f"Generated {n} black holes")
-    print(f"Position range: [{positions.min():.2f}, {positions.max():.2f}] kpc")
-    print(f"Velocity range: [{velocities.min():.2f}, {velocities.max():.2f}] km/s")
+    # # Prints the number of black holes generated and the range of positions and velocities generated
+    # print(f"Generated {n} black holes")
+    # print(f"Position range: [{positions.min():.2f}, {positions.max():.2f}] kpc")
+    # print(f"Velocity range: [{velocities.min():.2f}, {velocities.max():.2f}] km/s")
     
     # Provides the mass, position, and velocity for each black holes
     for i in range(n):
