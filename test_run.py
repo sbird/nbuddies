@@ -8,12 +8,13 @@
 
 import numpy as np 
 from evolution2 import simulation
-# from ICs import generate_initial_conditions
+from ICs import generate_plummer_initial_conditions
 from visualizations import movie_3D
 from pint import UnitRegistry 
 import pickle
 import shutil
 import os
+import pickle as pkl
 
 ureg = UnitRegistry()
 
@@ -38,9 +39,22 @@ def check_directory(folder_path):
 
     os.makedirs(folder_path)  #make new empty folder
 
+n = 3
+mass = 1.0e7
+scale = 1
+path_to_save_pkl_file = "./"
+
+blackholes, masses = generate_plummer_initial_conditions(n, mass, scale)
+pkl.dump({'data' : blackholes}, open(f"{path_to_save_pkl_file}/{n}body_plummer.pkl", "wb"))
+
+initial_nbody = f'{n}body_plummer.pkl'
+
 check_directory(output_folder_data)
-simulation(initial_file = 'BH_data_ic.pkl', output_folder = output_folder_data, tot_time = tot, nsteps = nstep, adaptive_dt = True, eta = eta)
+simulation(initial_file = initial_nbody, output_folder = output_folder_data, tot_time = tot, nsteps = nstep, adaptive_dt = True, eta = eta)
 
 check_directory(output_folder_movie)
-movie_3D(tot_nstep_eta = f'{tot}_{nstep}_{eta}')
+movie_3D(tot_nstep_eta = f'{tot}_{nstep}_{eta}_plummer')
 # saves trajectories_{tot}_{nstep}_{eta}.mkv in the current directory
+# with open('BH_data_ic.pkl', 'rb') as f:
+#     ics = pickle.load(f)
+# print(ics)
