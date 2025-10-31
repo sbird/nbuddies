@@ -1,11 +1,13 @@
 #N-Body Data Structure
+import warnings
+from pint import UnitStrippedWarning
 import numpy as np
 
 class BlackHole():
     def __init__(self, mass: float, position: list[float], velocity: list[float],
-                acceleration : list[float] = [0,0,0], 
-                 jerk: list[float] = [0, 0, 0], 
-                 snap: list[float] = [0, 0, 0]):
+                acceleration : list[float] = np.zeros(3), 
+                jerk: list[float] = np.zeros(3), 
+                snap: list[float] = np.zeros(3)):
         """
         Define data structure --> struct 
         mass, position (3D), velocity (3D), and acceleration (initialized to zero by default)
@@ -21,9 +23,9 @@ class BlackHole():
             velocity vector of black hole in km/s
         acceleration : list[float], default [0,0,0]
             acceleration vector of black hole in km/s^2
-        jerk : list[float], default is [0,0,0]
+        jerk : list[float], default [0,0,0]
             3D jerk vector (in km/s^3)
-        snap : list[float], default is [0,0,0]
+        snap : list[float], default [0,0,0]
             3D snap vector (in km/s^4)
         """
         assert mass > 0, "Mass must be positive" #checks mass is positive 
@@ -34,11 +36,15 @@ class BlackHole():
         assert len(snap) == 3, "Snap must be a 3D vector"
        
         self.mass = mass 
-        self.position = np.array(position) 
-        self.velocity = np.array(velocity) 
-        self.acceleration = np.array(acceleration)
-        self.jerk = np.array(jerk)
-        self.snap = np.array(snap)
+
+        with warnings.catch_warnings():
+            #suppress unit stripping warning here.
+            warnings.simplefilter("ignore", category=UnitStrippedWarning)
+            self.position = np.asarray(position) 
+            self.velocity = np.asarray(velocity) 
+            self.acceleration = np.asarray(acceleration)
+            self.jerk = np.asarray(jerk)
+            self.snap = np.asarray(snap)
 
     def displacement(self, other):
         """
