@@ -51,12 +51,8 @@ class AnalyticalCheck():
     def __init__(self, path):
 
         self.path = path
-        ## list all the files in the directory and list the index of the batches
-        files = os.listdir(path)
-        batch_list = [int(i.split('h')[-1].split('.pkl')[0]) for i in files]
-        # batch_list.sort()
-        # self.tot_times = len(batch_list)  # total number of time steps including initial
-        self.tot_times = batch_list[0]  # total number of time steps including initial
+        self.tot_times = self._find_last_batch_num(path)    # total number of time steps including initial
+                                                            # Same as finding the number of batch files saved
 
         ## Store the data from all batches in an array
         self.positions = np.array( self.tot_times * [np.zeros((2,3))] ) # shape = (num_batches, 2, 3)
@@ -80,6 +76,21 @@ class AnalyticalCheck():
         self.transform_coords()
 
 #######################################################
+
+    def _find_last_batch_num(self, path) -> int:
+        """
+        finds num of last batch file saved
+
+        Returns
+        -------
+        int
+            num of last batch file saved
+        """
+
+        i = 0
+        while os.path.exists(f"{path}/data_batch{i}.pkl"): # while path of ith data batch exists
+            i += 1 # increment i
+        return i - 1 # i is number corresponding to last data batch number
 
 
 #######################################################
@@ -205,9 +216,3 @@ class AnalyticalCheck():
         # can pass a custom tolerance fraction as the input to allclose if needed
 
 ###############################################################
-
-
-
-# output_dir = "./data"
-# check1 = AnalyticalCheck(output_dir)
-# check1.wrapper_for_analytical_check(tol_frac = 5e-2)
