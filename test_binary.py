@@ -29,7 +29,7 @@ def test_binary():
 
     # Path to the output data directory
     ICS_path = "./BH_data_binary.pkl"
-    output_dir = "./data/"
+    output_dir = "./data_binary/"
 
     # Implement the evolution code here
     Total_time = 5*10**17               # Total evoultion time in seconds
