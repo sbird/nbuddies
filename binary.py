@@ -1,6 +1,6 @@
 from pint import UnitRegistry
 from BlackHoles_Struct import BlackHole
-from ICs import generate_initial_conditions
+from ICs import generate_plummer_initial_conditions
 from evolution2 import simulation
 import os
 import numpy as np 

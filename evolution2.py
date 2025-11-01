@@ -72,7 +72,7 @@ def save_data_pkl(files, filename, path):
             "data" : data
         }, f)
 
-def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True):
+def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True, use_tree = True):
     ''' 
     Carries out the integration for each particle for one time step
     
@@ -115,7 +115,7 @@ def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True):
         save_data_pkl(files, f"data_batch{batch_idx}.pkl", path)
 
 
-def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfrog = True):
+def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfrog = True, use_tree = True):
     ''' 
     Carries out the integration for each particle for one time step
     
@@ -138,7 +138,7 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
     running_time = 0 * ureg.sec  # time elapsed in the simulation, will end when running_time == tot_time
     # needs to be initialized with units because recalculate_acceleration now assigns units acceleration
 
-    recalculate_dynamics(data) # Get acceleration with current position
+    recalculate_dynamics(data, use_tree) # Get acceleration with current position
 
     while running_time.magnitude < tot_time:
 
@@ -271,7 +271,7 @@ def comp_adaptive_dt(acc, jerk, snap, eta):
     return dt
 
 
-def simulation(initial_file, output_folder, tot_time, nsteps, delta_t = None, adaptive_dt = False, eta = None):
+def simulation(initial_file, output_folder, tot_time, nsteps, delta_t = None, adaptive_dt = False, eta = None, use_tree = True):
     """
     Wrapper Function for the simulation of time evolve N-body Problem
     
@@ -283,6 +283,7 @@ def simulation(initial_file, output_folder, tot_time, nsteps, delta_t = None, ad
     nsteps : number of steps for each saving of the batch
     adaptive_dt: whether to use the adaptive timestep formula using eta
     eta: the constant for the adpative timestep formula. Cannot be none if adpative_dt is True. 
+    use_tree : whether to use the BHT code for force calculation (default True)
     
     Outputs:
         
@@ -296,9 +297,9 @@ def simulation(initial_file, output_folder, tot_time, nsteps, delta_t = None, ad
         if eta is None:
             raise ValueError("Adaptive timestepping (adaptive_dt = True) requires a value of eta to be given.")
         else:
-            update_params_adaptive_timestep(data, tot_time, nsteps, eta, output_folder)
+            update_params_adaptive_timestep(data, tot_time, nsteps, eta, output_folder, use_tree)
     else:
-        update_params(data, tot_time, nsteps, delta_t, output_folder)
+        update_params(data, tot_time, nsteps, delta_t, output_folder, use_tree)
 
 
 print('Yay! The evolution2.py file is being used!')
