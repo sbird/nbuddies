@@ -223,4 +223,4 @@ def _find_last_batch_num() -> int:
 num_batches = _find_last_batch_num()
 ani = FuncAnimation(fig, update, frames=np.arange(num_batches),
                     init_func=init, blit=True)
-ani.save('binary_simulation.mp4', writer='ffmpeg', fps=5)
+ani.save('binary_simulation.mkv', writer='ffmpeg', fps=5)
