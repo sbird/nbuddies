@@ -150,12 +150,12 @@ output_dir = "./data/"
 # Implement the evolution code here
 Total_time = 5*10**17               # Total evoultion time in seconds
 n_snapshots = 100                   # Number of the output snapshots
-delta_t_fraction = n_snapshots      # How many steps between two snapshots
+# delta_t_fraction = n_snapshots      # How many steps between two snapshots
                                     # Due to the issue in output functions, set this to be the same as n_snapshots 
                                     # to get an expected output files
 
 # Run the simulation here
-simulation( ICS_path, output_dir, Total_time, Total_time // n_snapshots // delta_t_fraction, Total_time // n_snapshots)
+simulation(ICS_path, output_dir, Total_time, n_snapshots, delta_t = None, adaptive_dt= True, eta = 0.1, use_tree = True )
 
 # Plot a circle with radius R, center at COM based on the case
 COM = [0,0]
@@ -190,9 +190,9 @@ def loss_func( xdata, ydata, R ):
 # Update the plot and make it animated
 def update(frame):
     # Load the corresponding snapshot
-    with open( output_dir + 'data_batch' + str(n_snapshots) + '.pkl', 'rb') as f:
+    with open( output_dir + 'data_batch' + str(frame) + '.pkl', 'rb') as f:
         BH_data_final = pickle.load(f)
-
+    BH_data_final = BH_data_final['data']
     xdata = []
     ydata = []
     for frame in range(frame + 1):
@@ -208,6 +208,22 @@ def update(frame):
     loss_text.set_text(f'Loss: {loss:.4f}')
     return ln, loss_text
 
-ani = FuncAnimation(fig, update, frames=np.arange(n_snapshots),
+def _find_last_batch_num() -> int:
+    """
+    finds num of last batch file saved
+
+    Returns
+    -------
+    int
+        num of last batch file saved
+    """
+
+    i = 0
+    while os.path.exists(f"data/data_batch{i}.pkl"): # while path of ith data batch exists
+        i += 1 # increment i
+    return i - 1 # i is number corresponding to last data batch number
+
+num_batches = _find_last_batch_num()
+ani = FuncAnimation(fig, update, frames=np.arange(num_batches),
                     init_func=init, blit=True)
 ani.save('binary_simulation.gif', fps=5)
