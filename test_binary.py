@@ -2,7 +2,6 @@ from binary_analytical import AnalyticalCheck
 import numpy as np
 from pint import UnitRegistry
 from evolution2 import simulation
-from binary import generate_binary_ICs
 
 ## Set the unit system first
 ureg = UnitRegistry()
@@ -26,7 +25,7 @@ def test_binary():
 
     # now initialize the black holes with mass, positions, and velocities using the function supplied by the ics team
     # N_BH is the number of BHs, BH_data is the list of length N_BH containing BH objects 
-    BH_data = generate_binary_ICs(N_BH = 2, custom_vals = custom_vals, analy_sets = False)   
+    # BH_data = generate_binary_ICs(N_BH = 2, custom_vals = custom_vals, analy_sets = False)   
 
     # Path to the output data directory
     ICS_path = "./BH_data_binary.pkl"
