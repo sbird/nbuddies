@@ -5,7 +5,7 @@ def test_gravitree():
     """
     tests the gravitree function by generating a tree for a plummer sphere and checking root com is correct, which requires that all com leading up were additionally correct
     """
-    blackholes = generate_plummer_initial_conditions(100, 10, 10)[0]
+    blackholes = generate_plummer_initial_conditions(100, 10, 10)[0]['data']
     com = np.array([
         np.sum([bh.position[0]*bh.mass for bh in blackholes]),
         np.sum([bh.position[1]*bh.mass for bh in blackholes]),
