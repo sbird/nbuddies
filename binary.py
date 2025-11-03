@@ -115,7 +115,7 @@ def generate_binary_ICs(N_BH, custom_vals = None, analy_sets = False):
         data = dict()
         data['data'] = list_of_BH
         ## Save the file
-        with open('BH_data_ic.pkl', 'wb') as handle:
+        with open('BH_data_binary.pkl', 'wb') as handle:
             pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         # If required, generate the analytical dataset for this binary system
@@ -141,14 +141,14 @@ assert np.isclose( velocity.magnitude , 3.2791, atol=1e-4), "Velocity in custom_
 BH_data = generate_binary_ICs(N_BH = 2, custom_vals = custom_vals, analy_sets = False)   
 
 # or load it from some file as
-with open('BH_data_ic.pkl', 'rb') as f:
+with open('BH_data_binary.pkl', 'rb') as f:
     BH_data_ic = pickle.load(f)
 
-ICS_path = "./BH_data_ic.pkl"
+ICS_path = "./BH_data_binary.pkl"
 output_dir = "./data/"
 
 # Implement the evolution code here
-Total_time = 5*10**17               # Total evoultion time in seconds
+Total_time = 5*10**18               # Total evoultion time in seconds
 n_snapshots = 100                   # Number of the output snapshots
 # delta_t_fraction = n_snapshots      # How many steps between two snapshots
                                     # Due to the issue in output functions, set this to be the same as n_snapshots 
@@ -192,16 +192,13 @@ def update(frame):
     # Load the corresponding snapshot
     with open( output_dir + 'data_batch' + str(frame) + '.pkl', 'rb') as f:
         BH_data_final = pickle.load(f)
-    BH_data_final = BH_data_final['data']
+    BH_data_final = BH_data_final['data'][-1]
     xdata = []
     ydata = []
-    for frame in range(frame + 1):
-        for i in range(2):
-            xdata.append(BH_data_final[frame][i].position[0])
-            ydata.append(BH_data_final[frame][i].position[1])
 
-    xdata = xdata[-2:]
-    ydata = ydata[-2:]
+    for i in range(2):
+        xdata.append(BH_data_final[i].position[0])
+        ydata.append(BH_data_final[i].position[1])
 
     ln.set_data(xdata, ydata)
     loss = loss_func(xdata, ydata, R)
@@ -226,4 +223,4 @@ def _find_last_batch_num() -> int:
 num_batches = _find_last_batch_num()
 ani = FuncAnimation(fig, update, frames=np.arange(num_batches),
                     init_func=init, blit=True)
-ani.save('binary_simulation.gif', fps=5)
+ani.save('binary_simulation.mkv', writer='ffmpeg', fps=5)

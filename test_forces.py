@@ -29,7 +29,7 @@ def test_tree():
         #suppress unit stripping warnings inside this test
         warnings.simplefilter("ignore", category=UnitStrippedWarning)
 
-        blackholes = generate_plummer_initial_conditions(100, 20, 20)[0]
+        blackholes = generate_plummer_initial_conditions(100, 20, 20)[0]['data']
 
         recalculate_dynamics(blackholes, use_tree=False)
 
