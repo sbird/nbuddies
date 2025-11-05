@@ -154,10 +154,10 @@ def generate_plummer_initial_conditions(n_blackholes: int, initial_mass: float, 
             generate_random_vector_of_magnitude(r),
             generate_random_vector_of_magnitude(v)
         )
-    # blackholes_dict = {'data': blackholes}
+    blackholes_dict = {'data': blackholes}
     # pkl.dump(blackholes_dict, open(f"{path_to_save_pkl_file}/test_plummer2.pkl", "wb")) # save the blackholes list to a pickle file
     
-    return blackholes, masses   
+    return blackholes_dict, masses   
 
 if __name__ == "__main__":
     # Set random seed for reproducibility
