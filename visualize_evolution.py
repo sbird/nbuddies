@@ -96,7 +96,7 @@ def test_simulation_run(n_bh = 3, do_tree = True, do_brute = False,
 
 # saves trajectories_{tot}_{nstep}_{eta}.mkv in the current directory
 
-test_simulation_run(n_bh=2, do_tree=True, do_brute=True, do_comparison=True, do_binary=False)
+test_simulation_run(n_bh=5, do_tree=True, do_brute=True, do_comparison=True, do_binary=False)
 
 #--------------------------------------------------------------------------------#
 #not needed anymore
@@ -107,4 +107,3 @@ test_simulation_run(n_bh=2, do_tree=True, do_brute=True, do_comparison=True, do_
 
 # the above must be changed to be compatible with the latest plummer IC stuff pushed to ICs.py  
 # or its output ICs for 3 BHs from before can be used, which has been manually in 'interesting_ICs_3body.pkl' 
-
