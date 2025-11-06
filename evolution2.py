@@ -140,6 +140,7 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
 
     recalculate_dynamics(data, use_tree) # Get acceleration with current position
 
+    previous = 0
     while running_time.magnitude < tot_time:
 
         # block to decide the delta_t value for this iteration - 
@@ -147,8 +148,10 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
         for i, BH in enumerate(data):
             delta_t_BH[i] = comp_adaptive_dt(BH.acceleration, BH.jerk, BH.snap, eta)  # compute adaptive value
         delta_t = np.min(delta_t_BH)   # choose the minimum among all BHs
-
-        print(f'time_elapsed: {running_time.magnitude/tot_time*100:.2f}% of tot_time; delta_t for this iteration: {delta_t}')
+        # print(f'time_elapsed: {running_time.magnitude/tot_time*100:.2f}% of tot_time; delta_t for this iteration: {delta_t}')
+        if previous < int(running_time.magnitude/tot_time*100):
+            print(f'time_elapsed: {previous:2d}% of tot_time; delta_t for this iteration: {delta_t:.2e}')
+            previous = int(running_time.magnitude/tot_time*100)
         # this statement can be useful to keep a check on how fast the simulation is proceeding for a given eta
 
         if (leapfrog):
