@@ -1,6 +1,6 @@
 from pint import UnitRegistry
 from BlackHoles_Struct import BlackHole
-from ICs import generate_plummer_initial_conditions
+from ICs import generate_binary_ICs
 from evolution2 import simulation
 import os
 import numpy as np 
@@ -77,50 +77,6 @@ def generate_analy_dataset( BH_data_ic ):
             os.makedirs(Save_Dir)
         with open( Save_Dir + 'BH_data_%03d.pkl' % i, 'wb') as handle:
             pickle.dump([list_of_BH], handle, protocol=pickle.HIGHEST_PROTOCOL)
-    
-def generate_binary_ICs(N_BH, custom_vals = None, analy_sets = False):
-    # outlines the structure expected from the ICs team
-    # we demand that there be a custom_vals option as defined here, so that we can test out 
-    # simple cases corresponding to specific (instead of random) initial positions and velocities
-    """
-    inputs:
-    N_BH: total number of black holes in the simulation
-    custom_vals: contains the user-specified values for masses, positions and velocities. 
-                 should be a dictionary like {'mass' : np array shape (N_BH, ), 'postion' : np array shape (N_BH, 3) ,'velocity' : np array shape (N_BH, 3)} 
-    
-    outputs:
-    BH_data_ic: a list of BH objects initialized with the initial values of mass, positions, and velocities
-    """
-
-    # this is the 'black hole data', and will eventually store the BH objects after initialization
-    # BH_data_ic = []
-
-    if custom_vals != None:
-        # if every physical quantity is in the same dict, 
-        init_BH_values = custom_vals    
-
-        # if they are assigned as separate np arrays, 
-        init_BH_masses = custom_vals['mass']    
-        init_BH_positions = custom_vals['position']
-        init_BH_velocities = custom_vals['velocity']
-
-        # the above choice depends on how the ics team have implemented it
-
-        ## Load the custom_vals into Class objects
-        list_of_BH = []
-        for i in range(init_BH_values['N']):
-            BH = BlackHole( init_BH_masses[i], init_BH_positions[i], init_BH_velocities[i] )
-            list_of_BH.append(BH)
-
-        data = dict()
-        data['data'] = list_of_BH
-        ## Save the file
-        with open('BH_data_binary.pkl', 'wb') as handle:
-            pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-        # If required, generate the analytical dataset for this binary system
-        if analy_sets:
-            generate_analy_dataset( data )
 
 # example call - 
 # one example of custom values 
@@ -138,7 +94,8 @@ assert np.isclose( velocity.magnitude , 3.2791, atol=1e-4), "Velocity in custom_
 
 # now initialize the black holes with mass, positions, and velocities using the function supplied by the ics team
 # N_BH is the number of BHs, BH_data is the list of length N_BH containing BH objects 
-BH_data = generate_binary_ICs(N_BH = 2, custom_vals = custom_vals, analy_sets = False)   
+BH_data = generate_binary_ICs(N_BH = 2, custom_vals = custom_vals)  
+# generate_analy_dataset( BH_data ) 
 
 # or load it from some file as
 with open('BH_data_binary.pkl', 'rb') as f:
@@ -148,14 +105,14 @@ ICS_path = "./BH_data_binary.pkl"
 output_dir = "./data/"
 
 # Implement the evolution code here
-Total_time = 5*10**18               # Total evoultion time in seconds
-n_snapshots = 100                   # Number of the output snapshots
+Total_time = 5*10**16               # Total evoultion time in seconds
+n_step = 5                          # Number of the steps per batch
 # delta_t_fraction = n_snapshots      # How many steps between two snapshots
                                     # Due to the issue in output functions, set this to be the same as n_snapshots 
                                     # to get an expected output files
 
 # Run the simulation here
-simulation(ICS_path, output_dir, Total_time, n_snapshots, delta_t = None, adaptive_dt= True, eta = 0.1, use_tree = True )
+simulation(ICS_path, output_dir, Total_time, n_step, delta_t = None, adaptive_dt= True, eta = 0.1, use_tree = True )
 
 # Plot a circle with radius R, center at COM based on the case
 COM = [0,0]
@@ -223,4 +180,4 @@ def _find_last_batch_num() -> int:
 num_batches = _find_last_batch_num()
 ani = FuncAnimation(fig, update, frames=np.arange(num_batches),
                     init_func=init, blit=True)
-ani.save('binary_simulation.mkv', writer='ffmpeg', fps=5)
+ani.save('binary_simulation.mp4', writer='ffmpeg', fps=5)

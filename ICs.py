@@ -155,9 +155,49 @@ def generate_plummer_initial_conditions(n_blackholes: int, initial_mass: float, 
             generate_random_vector_of_magnitude(v)
         )
     blackholes_dict = {'data': blackholes}
-    # pkl.dump(blackholes_dict, open(f"{path_to_save_pkl_file}/test_plummer2.pkl", "wb")) # save the blackholes list to a pickle file
+    pkl.dump(blackholes_dict, open(f"{path_to_save_pkl_file}/test_plummer1.pkl", "wb")) # save the blackholes list to a pickle file
     
     return blackholes_dict, masses   
+
+def generate_binary_ICs(N_BH, custom_vals = None, file_name = "BH_data_binary.pkl"):
+    # outlines the structure expected from the ICs team
+    # we demand that there be a custom_vals option as defined here, so that we can test out 
+    # simple cases corresponding to specific (instead of random) initial positions and velocities
+    """
+    inputs:
+    N_BH: total number of black holes in the simulation
+    custom_vals: contains the user-specified values for masses, positions and velocities. 
+                 should be a dictionary like {'mass' : np array shape (N_BH, ), 'postion' : np array shape (N_BH, 3) ,'velocity' : np array shape (N_BH, 3)} 
+    
+    outputs:
+    BH_data_ic: a list of BH objects initialized with the initial values of mass, positions, and velocities
+    """
+
+    # this is the 'black hole data', and will eventually store the BH objects after initialization
+    # BH_data_ic = []
+
+    if custom_vals != None:
+        # if every physical quantity is in the same dict, 
+        init_BH_values = custom_vals    
+
+        # if they are assigned as separate np arrays, 
+        init_BH_masses = custom_vals['mass']    
+        init_BH_positions = custom_vals['position']
+        init_BH_velocities = custom_vals['velocity']
+
+        # the above choice depends on how the ics team have implemented it
+
+        ## Load the custom_vals into Class objects
+        list_of_BH = []
+        for i in range(init_BH_values['N']):
+            BH = BlackHole( init_BH_masses[i], init_BH_positions[i], init_BH_velocities[i] )
+            list_of_BH.append(BH)
+
+        data = dict()
+        data['data'] = list_of_BH
+        ## Save the file
+        with open(file_name, 'wb') as handle:
+            pkl.dump(data, handle, protocol=pkl.HIGHEST_PROTOCOL)
 
 if __name__ == "__main__":
     # Set random seed for reproducibility
@@ -166,7 +206,7 @@ if __name__ == "__main__":
     # Generate initial conditions for 20 black holes
     n = 20              # number of black holes
     mass = 1e6          # solar masses per BH
-    m1_ratio = 0.05      # mass ratio between two types of black holes
+    m1_ratio = 0.00      # mass ratio between two types of black holes
     scale = 1           # scale (a value)
     blackholes, masses = generate_plummer_initial_conditions(n, mass, scale, m1_ratio)
 
@@ -176,7 +216,7 @@ if __name__ == "__main__":
     pmin = np.inf
     pmax = -np.inf
 
-    # blackholes = blackholes['data']
+    blackholes = blackholes['data']
     for i in range(n):
         print(f"\nBlack hole {i+1}:")
         print(f"  Mass: {blackholes[i].mass:.1f} M_sun")
