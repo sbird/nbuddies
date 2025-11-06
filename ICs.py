@@ -101,7 +101,7 @@ def find_q() -> float:
 
 def g(q: float) -> float:
     """
-    Generate the probability distribution that is proportionalto velocity modulus q derived from Equation (4)
+    Generate the probability distribution that is proportional to velocity modulus q derived from Equation (4)
     Input:
         q, velocity modulus 
     Output:
@@ -137,8 +137,8 @@ def generate_plummer_initial_conditions(n_blackholes: int, initial_mass: float, 
         velocities, velocity [km/s] vector of each BlackHole object
     """    
     blackholes = np.empty(n_blackholes, BlackHole) # Prepares an array to hold all blackholes  
-
     masses = generate_mass(n_blackholes, initial_mass, ratio)
+
     # an example of positions: [[x1,y1,z1],[x2,y2,z2],...,[xn,yn,zn]], 
     # where xi,yi,zi are the coordinates of the i-th black hole  
 
@@ -155,7 +155,7 @@ def generate_plummer_initial_conditions(n_blackholes: int, initial_mass: float, 
             generate_random_vector_of_magnitude(v)
         )
     blackholes_dict = {'data': blackholes}
-    pkl.dump(blackholes_dict, open(f"{path_to_save_pkl_file}/test_plummer1.pkl", "wb")) # save the blackholes list to a pickle file
+    # pkl.dump(blackholes_dict, open(f"{path_to_save_pkl_file}/test_plummer2.pkl", "wb")) # save the blackholes list to a pickle file
     
     return blackholes_dict, masses   
 
@@ -176,7 +176,7 @@ if __name__ == "__main__":
     pmin = np.inf
     pmax = -np.inf
 
-    blackholes = blackholes['data']
+    # blackholes = blackholes['data']
     for i in range(n):
         print(f"\nBlack hole {i+1}:")
         print(f"  Mass: {blackholes[i].mass:.1f} M_sun")

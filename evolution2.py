@@ -95,10 +95,10 @@ def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True, use
     for i, timestep in enumerate(np.arange(0, tot_time, delta_t)): # for each time step, carry out the evolution for all BHs
         if (leapfrog):
             # Leapfrog Integration
-            result = leapfrog_integrator(data, delta_t, timestep)
+            result = leapfrog_integrator(data, delta_t, timestep, use_tree)
         else:
             # Euler integration
-            result = euler_integrator(data, delta_t)
+            result = euler_integrator(data, delta_t, use_tree)
         count += 1
         data_lst.append(result)
         if count == num_steps:
@@ -153,10 +153,10 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
 
         if (leapfrog):
             # Leapfrog Integration
-            result = leapfrog_integrator(data, delta_t, running_time)
+            result = leapfrog_integrator(data, delta_t, running_time, use_tree)
         else:
             # Euler integration
-            result = euler_integrator(data, delta_t)
+            result = euler_integrator(data, delta_t, use_tree)
         running_time += delta_t
         count += 1
         data_lst.append(result)
@@ -171,7 +171,7 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
             count = 0
             data_lst = []
         
-        recalculate_dynamics(data) 
+        recalculate_dynamics(data, use_tree) 
         # these need to be done before the next computation of dt (next iteration of the loop)
 
     # Save any remaining timesteps
@@ -181,7 +181,7 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
 
 
 
-def leapfrog_integrator(data, delta_t, timestep):
+def leapfrog_integrator(data, delta_t, timestep, use_tree):
     """
     Updating position and velocity of BH objects with conserving phase space volume (symplectic integrator).
     
@@ -201,7 +201,7 @@ def leapfrog_integrator(data, delta_t, timestep):
     """
     delta_half = delta_t / 2
     if timestep == 0:
-        recalculate_dynamics(data) # Get acceleartion with current position
+        recalculate_dynamics(data, use_tree) # Get acceleartion with current position
 
     result = []
 
@@ -213,7 +213,7 @@ def leapfrog_integrator(data, delta_t, timestep):
     # hence the .magnitude
 
     # Recalculation of the acceleration
-    recalculate_dynamics(data)
+    recalculate_dynamics(data, use_tree)
 
     # Last Kick
     for BH in data:
@@ -222,7 +222,7 @@ def leapfrog_integrator(data, delta_t, timestep):
 
     return result
             
-def euler_integrator(data, delta_t):
+def euler_integrator(data, delta_t, use_tree):
     """
     Euler integration of the position and velocity according to
     r(t+Delta t) = r(t) + v(t) * Delta t
@@ -236,7 +236,7 @@ def euler_integrator(data, delta_t):
     result - list of Blackhole object
     
     """
-    recalculate_dynamics(data)  # provided in Forces.py
+    recalculate_dynamics(data, use_tree)  # provided in Forces.py
     result = []
     for BH in data:  # assumes the BH objects are already loaded with initial values
         BH.position += ( (BH.velocity/ KM_PER_KPC) * delta_t ).magnitude # Euler integration (formula given above)
