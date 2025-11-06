@@ -23,8 +23,8 @@ def movie_3D_comparison(tail_length: int = 10, tot_nstep_eta=None):
     """
 
     # set up
-    if not os.path.exists(nbuddies_path + "/movie_dump"):  # check if dir exists
-        os.makedirs(nbuddies_path + "/movie_dump")  # if not, create dir path
+    if not os.path.exists(nbuddies_path + "/movie_dump_comparison"):  # check if dir exists
+        os.makedirs(nbuddies_path + "/movie_dump_comparison")  # if not, create dir path
 
     # get info from sim end
     last_batch_tree = _find_last_batch_num("/data_tree")
@@ -129,7 +129,7 @@ def movie_3D_comparison(tail_length: int = 10, tot_nstep_eta=None):
         ax.legend(handles=[blue_proxy, red_proxy], loc='upper right')
 
         plt.tight_layout()
-        plt.savefig(nbuddies_path + f"/movie_dump/trajectories_{i}.png",
+        plt.savefig(nbuddies_path + f"/movie_dump_comparison/trajectories_{i}.png",
                     dpi=300, bbox_inches='tight')
         plt.close()
 
@@ -148,11 +148,11 @@ def _find_last_batch_num(brute_or_tree) -> int:
 
 def _recompile_movie_3D_compare(tot_nstep_eta):
     """
-    Deletes old comparison movie if it exists, then recreates it by compiling the PNGs in movie_dump
+    Deletes old comparison movie if it exists, then recreates it by compiling the PNGs in movie_dump_comparison
     """
     movie_path = nbuddies_path + f"/trajectories_compare_{tot_nstep_eta}.mkv"
     if os.path.exists(movie_path):
         os.remove(movie_path)
     os.system("ffmpeg -framerate 12 -start_number 0 -i " +
-              nbuddies_path + "/movie_dump/trajectories_%01d.png -q:v 0 " +
+              nbuddies_path + "/movie_dump_comparison/trajectories_%01d.png -q:v 0 " +
               movie_path)

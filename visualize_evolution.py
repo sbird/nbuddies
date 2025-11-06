@@ -69,7 +69,7 @@ def test_simulation_run(n_bh = 3, do_tree = True, do_brute = False,
         mass = 1.0e7  # mass of each black hole in solar mass units - same for all bodies
         scale = 1  # scale parameter "a" for Plummer model
         blackholes, _ = generate_plummer_initial_conditions(n, mass, scale)
-        pkl.dump({'data' : blackholes}, open(f"{path_to_save_pkl_file}/{n}body_plummer.pkl", "wb"))
+        pkl.dump(blackholes, open(f"{path_to_save_pkl_file}/{n}body_plummer.pkl", "wb"))
         initial_values = f'{n}body_plummer.pkl'
     check_directory(output_folder_movie) #check if the movie dump folder exists
 
@@ -96,7 +96,7 @@ def test_simulation_run(n_bh = 3, do_tree = True, do_brute = False,
 
 # saves trajectories_{tot}_{nstep}_{eta}.mkv in the current directory
 
-test_simulation_run(n_bh=2, do_tree=True, do_brute=True, do_comparison=True, do_binary=False)
+test_simulation_run(n_bh=2, do_tree=True, do_brute=False, do_comparison=False, do_binary=True)
 
 #--------------------------------------------------------------------------------#
 #not needed anymore
@@ -107,4 +107,3 @@ test_simulation_run(n_bh=2, do_tree=True, do_brute=True, do_comparison=True, do_
 
 # the above must be changed to be compatible with the latest plummer IC stuff pushed to ICs.py  
 # or its output ICs for 3 BHs from before can be used, which has been manually in 'interesting_ICs_3body.pkl' 
-
