@@ -57,7 +57,7 @@ def save_data_pkl(files, filename, path):
     # join folder with filename
     file_path = os.path.join(path, filename)
 
-    data, delta_t, tot_time, num_steps = files # unpack the input tuple
+    data, time, delta_t, tot_time, num_steps = files # unpack the input tuple
     if data is None:
         print("No time-evolved data to save")   #if used by the IC team
     with open(file_path, 'wb') as f:
@@ -69,6 +69,7 @@ def save_data_pkl(files, filename, path):
             "total time" : tot_time,
             "number of steps per batch" : num_steps,
             "delta_t" : delta_t,
+            "time" : time,
             "data" : data
         }, f)
 
@@ -102,7 +103,7 @@ def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True, use
         count += 1
         data_lst.append(result)
         if count == num_steps:
-            files = [data_lst, delta_t, tot_time, num_steps]
+            files = [data_lst, np.arange(count)*delta_t, delta_t, tot_time, num_steps]
             save_data_pkl(files, f'data_batch{batch_idx}.pkl', path)  # saving as a pkl file right now
             batch_idx += 1
             # resets the values for the next batch
@@ -136,12 +137,12 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
     count = 0 # goes from 0 to num_steps - 1, used to check when to save the data  
     data_lst = [data] # initialized with the starting data, stores the evolved data batch-wise
     running_time = 0 * ureg.sec  # time elapsed in the simulation, will end when running_time == tot_time
+    times = np.zeros(num_steps + 1) * ureg.sec
     # needs to be initialized with units because recalculate_acceleration now assigns units acceleration
 
     recalculate_dynamics(data, use_tree) # Get acceleration with current position
 
     while running_time.magnitude < tot_time:
-
         # block to decide the delta_t value for this iteration - 
         delta_t_BH = np.zeros(len(data)) * ureg.s
         for i, BH in enumerate(data):
@@ -160,8 +161,9 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
         running_time += delta_t
         count += 1
         data_lst.append(result)
+        times[count] = running_time
         if count == num_steps:
-            files = [data_lst, delta_t, tot_time, num_steps] 
+            files = [data_lst, times, delta_t, tot_time, num_steps] 
             # the above way of saving means we are saving the value of timestep in the last simulation of each batch
             # will keep it like that for now so that we can access the typical values of timesteps, later can just save the eta as metadata
 
@@ -176,7 +178,7 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
 
     # Save any remaining timesteps
     if (data_lst):
-        files = [data_lst, delta_t, tot_time, num_steps]
+        files = [data_lst, times[:count], delta_t, tot_time, num_steps]
         save_data_pkl(files, f"data_batch{batch_idx}.pkl", path)
 
 

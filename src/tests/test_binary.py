@@ -4,6 +4,7 @@ import numpy as np
 import os
 from pint import UnitRegistry
 from ..evolution import simulation
+from ..visualizations import *
 
 ## Set the unit system first
 ureg = UnitRegistry()
@@ -67,3 +68,8 @@ def test_binary():
     # Assert that the computed values are within the specified tolerance of the analytical values
     assert np.all(abs(comp_angular_momentum.m - angular_momentum.m) / angular_momentum.m < 1e-3), "Angular momentum does not match analytical solution within tolerance"
     assert np.all(abs((comp_energy.m - energy.m) / energy.m) < 1e-3), "Energy does not match analytical solution within tolerance"
+
+    #visualize
+    movie_3D("binary")
+    radial_position_plot("binary")
+    
