@@ -43,7 +43,7 @@ def test_organization():
     #check for forbidden directories
     for suspect in os.listdir(nbuddies_path):
         if os.path.isfile(nbuddies_path + suspect):
-            assert fnmatch(suspect, ".py") or fnmatch(suspect, ".*") or fnmatch(suspect, "LICENSE"), f"Data file {suspect} found outside of data directory! Contain it!!"
+            assert fnmatch(suspect, "*.py") or fnmatch(suspect, ".*") or fnmatch(suspect, "LICENSE"), f"Data file {suspect} found outside of data directory! Contain it!!"
 
         else:
             allowed = False
