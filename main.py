@@ -12,7 +12,7 @@ GG = G.to("kiloparsec * kilometer**2 / (solarmass * second**2)")
 
 #sim parameters
 name = "mass_segregation"
-N = 50
+N = 70
 R = 5 * ureg('kpc')
 M = 5e8 * ureg('solarmass')
 
@@ -34,11 +34,11 @@ print(t_relax.to("Myr"))
 
 t_segregate = 0.1 * t_relax
 
-sim_time = (2*t_segregate).to("second").magnitude
+sim_time = 3*t_relax
 
-print(f"sim time = {2*t_segregate.to('Myr'):.3} = {sim_time:.3} sec")
+print(f"sim time = {sim_time.to('Myr'):.3} = {sim_time.to('second'):.3}")
 #run_sim
-simulation(data_path+"/ICs.pkl", data_path, tot_time=sim_time, nsteps=10, adaptive_dt=True, eta=0.1, use_tree=True)
+simulation(data_path+"/ICs.pkl", data_path, tot_time=sim_time.to('second').magnitude, nsteps=10, adaptive_dt=True, eta=0.1, use_tree=True)
 
 #visualize
 movie_3D(name)

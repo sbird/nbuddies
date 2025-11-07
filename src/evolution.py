@@ -137,7 +137,7 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
     count = 0 # goes from 0 to num_steps - 1, used to check when to save the data  
     data_lst = [data] # initialized with the starting data, stores the evolved data batch-wise
     running_time = 0 * ureg.sec  # time elapsed in the simulation, will end when running_time == tot_time
-    times = np.zeros(num_steps + 1) * ureg.sec
+    times = np.zeros(num_steps) * ureg.sec
     # needs to be initialized with units because recalculate_acceleration now assigns units acceleration
 
     recalculate_dynamics(data, use_tree) # Get acceleration with current position
@@ -159,9 +159,9 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
             # Euler integration
             result = euler_integrator(data, delta_t, use_tree)
         running_time += delta_t
+        times[count] = running_time
         count += 1
         data_lst.append(result)
-        times[count] = running_time
         if count == num_steps:
             files = [data_lst, times, delta_t, tot_time, num_steps] 
             # the above way of saving means we are saving the value of timestep in the last simulation of each batch

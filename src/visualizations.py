@@ -1,4 +1,5 @@
 import os
+import shutil
 import pickle
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -23,8 +24,9 @@ def movie_3D(sim_name : str, tail_length: int = 10, tot_nstep_eta = None):
     
     #set up
     # Creating output folder for animation frames if it doesn't exist
-    if not os.path.exists(nbuddies_path+"/movie_dump/"+sim_name): # check if dir exists
-        os.makedirs(nbuddies_path+"/movie_dump/"+sim_name) # if not, create dir path
+    if os.path.exists(nbuddies_path+"/movie_dump/"+sim_name): # check if dir exists
+        shutil.rmtree(nbuddies_path+"/movie_dump/"+sim_name) #pruge old images  
+    os.makedirs(nbuddies_path+"/movie_dump/"+sim_name) # create dir path
     
     #getting info from sim end
     last_batch_num = _find_last_batch_num(sim_name) # find number corresponding to last data batch number
@@ -64,7 +66,6 @@ def movie_3D(sim_name : str, tail_length: int = 10, tot_nstep_eta = None):
     #generating movie frames
     #Loop through batch to make frames
     for i in range(last_batch_num + 1):
-        
         #slide data window forward
         for j in range(tail_length - 1):
             plotting_data[:,:,j] = plotting_data[:,:,j+1] # move data window forward by 1
@@ -161,9 +162,11 @@ def radial_position_plot(sim_name):
 
     #getting info from sim start
     with open(nbuddies_path + '/data/'+ sim_name + "/data_batch0.pkl", 'rb') as file:
-        init_data = pickle.load(file)['data']
+        file = pickle.load(file)
+        init_data = file['data']
     
-    n_batch = len(init_data)
+    n_batch = len(file['time'])
+    print(n_batch)
     N = len(init_data[0])
 
     r_points = np.zeros([N, last_batch_num*n_batch])
@@ -175,13 +178,15 @@ def radial_position_plot(sim_name):
         masses[n] = init_data[0][n].mass
 
     for i in range(last_batch_num):
-        with open(nbuddies_path + '/data/'+ sim_name + "/data_batch0.pkl", 'rb') as file:
+        with open(nbuddies_path + '/data/'+ sim_name + f"/data_batch{i}.pkl", 'rb') as file:
             file = pickle.load(file)
         for j in range(n_batch):
             k = i*n_batch + j
             for n in range(N):
                 r_points[n,k] = np.linalg.norm(file["data"][j][n].position)
             t_points[k] = file["time"][j].to('Myr').magnitude
+
+    print(t_points)
     
     #set up cmap
     viridis_dark = colors.LinearSegmentedColormap.from_list('viridis_dark', plt.cm.viridis(np.linspace(0, 0.7, 256))).reversed()
@@ -198,6 +203,7 @@ def radial_position_plot(sim_name):
 
     ax.set_xlabel("t (Myr)")
     ax.set_ylabel("r (kpc)")
+    ax.set_yscale('log')
     ax.set_title("Radial Position over Time")
 
     sm = plt.cm.ScalarMappable(cmap=viridis_dark, norm=norm)
