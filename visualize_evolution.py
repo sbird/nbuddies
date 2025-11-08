@@ -7,15 +7,15 @@
 #############
 
 import numpy as np 
-from evolution2 import simulation
-from ICs import generate_plummer_initial_conditions
-from visualizations import movie_3D
+from src.evolution import simulation
+from src.ICs import generate_plummer_initial_conditions
+from src.visualizations import movie_3D
 import shutil
 import os
 import pickle as pkl
 import time
 from visualizations_comparisons import movie_3D_comparison
-from BlackHoles_Struct import BlackHole
+from src.BlackHoles_Struct import BlackHole
 # from binary import generate_binary_ICs
 
 start = time.time()
