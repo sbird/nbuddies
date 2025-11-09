@@ -161,7 +161,7 @@ def generate_binary_ICs( N_BH: int, custom_vals: dict =
                         {   'N': 2,
                             'mass': np.array([1.0e7, 1.0e7]), 
                             'position': np.array([[1., 0., 0.], [-1., 0., 0.]]), 
-                            'velocity': np.array([[0. ,3.2791 ,0.], [0. ,-3.2791 ,0.]])} ) -> list[float]:
+                            'velocity': np.array([[0. ,3.2791 ,0.], [0. ,-3.2791 ,0.]])} ) -> tuple[list[BlackHole], float]:
     # outlines the structure expected from the ICs team
     # we demand that there be a custom_vals option as defined here, so that we can test out 
     # simple cases corresponding to specific (instead of random) initial positions and velocities
