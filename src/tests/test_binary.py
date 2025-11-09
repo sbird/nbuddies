@@ -35,13 +35,13 @@ def test_binary():
     data, _ = generate_binary_ICs(N_BH = 2, custom_vals = custom_vals)   
 
     # Generate and save the initial conditions for the binary system
-    path_to_save_pkl_file = "./test_file_for_binary"
+    path_to_save_pkl_file = "test_file_for_binary"
     with open(f"{path_to_save_pkl_file}/BH_data_binary.pkl", 'wb') as handle:
         pkl.dump(data, handle, protocol=pkl.HIGHEST_PROTOCOL)
     initial_values = path_to_save_pkl_file + '/BH_data_binary.pkl'
 
     # Path to the output data directory
-    output_dir = "./test_file_for_binary/BH_output/"
+    output_dir = "test_file_for_binary/BH_output/"
 
     # Implement the evolution code here
     Total_time = 5*10**17               # Total evoultion time in seconds
