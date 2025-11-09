@@ -1,6 +1,7 @@
 import numpy as np
 import pickle as pkl
 from .BlackHoles_Struct import BlackHole
+import os
 
 path_to_save_pkl_file = "./"
 GG = 4.301E-6 # Newton's constant [km^2*kpc / solar mass*s^2]
@@ -155,9 +156,45 @@ def generate_plummer_initial_conditions(n_blackholes: int, initial_mass: float, 
             generate_random_vector_of_magnitude(v)
         )
     blackholes_dict = {'data': blackholes}
-    # pkl.dump(blackholes_dict, open(f"{path_to_save_pkl_file}/test_plummer2.pkl", "wb")) # save the blackholes list to a pickle file
     
     return blackholes_dict, masses   
+
+def generate_binary_ICs( N_BH: int, custom_vals: dict = 
+                        {   'N': 2,
+                            'mass': np.array([1.0e7, 1.0e7]), 
+                            'position': np.array([[1., 0., 0.], [-1., 0., 0.]]), 
+                            'velocity': np.array([[0. ,3.2791 ,0.], [0. ,-3.2791 ,0.]])} ) -> list[float]:
+    # outlines the structure expected from the ICs team
+    # we demand that there be a custom_vals option as defined here, so that we can test out 
+    # simple cases corresponding to specific (instead of random) initial positions and velocities
+    """
+    inputs:
+    N_BH: total number of black holes in the simulation
+    custom_vals: contains the user-specified values for masses, positions and velocities. {'mass' : np array shape (N_BH, ), 'position' : np array shape (N_BH, 3) ,'velocity' : np array shape (N_BH, 3)}
+
+    outputs:
+    BH_data_ic: a list of BH objects initialized with the initial values of mass, positions, and velocities
+    """
+
+    # this is the 'black hole data', and will eventually store the BH objects after initialization
+    # BH_data_ic = []
+
+    # if they are assigned as separate np arrays, 
+    init_BH_masses = custom_vals['mass']    
+    init_BH_positions = custom_vals['position']
+    init_BH_velocities = custom_vals['velocity']
+
+    # the above choice depends on how the ics team have implemented it
+
+    ## Load the custom_vals into Class objects
+    list_of_BH = []
+    for i in range( N_BH ):
+        BH = BlackHole( init_BH_masses[i], init_BH_positions[i], init_BH_velocities[i] )
+        list_of_BH.append(BH)
+
+    blackholes_dict = {'data': list_of_BH}
+
+    return blackholes_dict, init_BH_masses
 
 if __name__ == "__main__":
     # Set random seed for reproducibility

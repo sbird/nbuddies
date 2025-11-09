@@ -8,7 +8,7 @@
 
 import numpy as np 
 from src.evolution import simulation
-from src.ICs import generate_plummer_initial_conditions
+from src.ICs import generate_plummer_initial_conditions, generate_binary_ICs
 from src.visualizations import movie_3D
 import shutil
 import os
@@ -47,21 +47,9 @@ def test_simulation_run(n_bh = 3, do_tree = True, do_brute = False,
                 'mass': np.array([1.0e7, 1.0e7]), 
                 'position': np.array([[1., 0., 0.], [-1., 0., 0.]]), 
                 'velocity': np.array([[0. ,3.2791 ,0.], [0. ,-3.2791 ,0.]])}
-        # generate_binary_ICs(N_BH = 2, custom_vals = custom_vals, analy_sets = False)  #some problem with binary.py
-        init_BH_masses = custom_vals['mass']    
-        init_BH_positions = custom_vals['position']
-        init_BH_velocities = custom_vals['velocity']
-         ## Load the custom_vals into Class objects
-        list_of_BH = []
-        n = custom_vals['N']
-        for i in range(n):
-            BH = BlackHole( init_BH_masses[i], init_BH_positions[i], init_BH_velocities[i] )
-            list_of_BH.append(BH)
-
-        data = dict()
-        data['data'] = list_of_BH
+        data, = generate_binary_ICs( N_BH = 2, custom_vals = custom_vals )
         ## Save the file
-        with open('BH_data_binary.pkl', 'wb') as handle:
+        with open(f"{path_to_save_pkl_file}/BH_data_binary.pkl", 'wb') as handle:
             pkl.dump(data, handle, protocol=pkl.HIGHEST_PROTOCOL)
         initial_values = 'BH_data_binary.pkl'
     else: 
