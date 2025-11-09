@@ -1,3 +1,4 @@
+from tqdm import tqdm
 from .Forces import *
 import os
 import pickle
@@ -142,39 +143,43 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
 
     recalculate_dynamics(data, use_tree) # Get acceleration with current position
 
-    while running_time.magnitude < tot_time:
-        # block to decide the delta_t value for this iteration - 
-        delta_t_BH = np.zeros(len(data)) * ureg.s
-        for i, BH in enumerate(data):
-            delta_t_BH[i] = comp_adaptive_dt(BH.acceleration, BH.jerk, BH.snap, eta)  # compute adaptive value
-        delta_t = np.min(delta_t_BH)   # choose the minimum among all BHs
+    with tqdm(total=tot_time, desc="Simulation Progress") as pbar:
+        while running_time.magnitude < tot_time:
+            # block to decide the delta_t value for this iteration - 
+            delta_t_BH = np.zeros(len(data)) * ureg.s
+            for i, BH in enumerate(data):
+                delta_t_BH[i] = comp_adaptive_dt(BH.acceleration, BH.jerk, BH.snap, eta)  # compute adaptive value
+            delta_t = np.min(delta_t_BH)   # choose the minimum among all BHs
 
-        print(f"time_elapsed: {running_time.magnitude/tot_time*100:.2f}% of tot_time; delta_t for this iteration: {delta_t.to('Myr')}")
-        # this statement can be useful to keep a check on how fast the simulation is proceeding for a given eta
+            pbar.update(delta_t.magnitude)
+            pbar.set_postfix({"time_elapsed": f"{running_time.magnitude / tot_time * 100:.2f}%", "Δt": f"{delta_t.to('Myr'):.2e}"})
 
-        if (leapfrog):
-            # Leapfrog Integration
-            result = leapfrog_integrator(data, delta_t, running_time, use_tree)
-        else:
-            # Euler integration
-            result = euler_integrator(data, delta_t, use_tree)
-        running_time += delta_t
-        times[count] = running_time
-        count += 1
-        data_lst.append(result)
-        if count == num_steps:
-            files = [data_lst, times, delta_t, tot_time, num_steps] 
-            # the above way of saving means we are saving the value of timestep in the last simulation of each batch
-            # will keep it like that for now so that we can access the typical values of timesteps, later can just save the eta as metadata
+            # print(f"time_elapsed: {running_time.magnitude/tot_time*100:.2f}% of tot_time; delta_t for this iteration: {delta_t.to('Myr')}")
+            # this statement can be useful to keep a check on how fast the simulation is proceeding for a given eta
 
-            save_data_pkl(files, f'data_batch{batch_idx}.pkl', path)  # saving as a pkl file right now
-            batch_idx += 1
-            # resets the values for the next batch
-            count = 0
-            data_lst = []
-        
-        recalculate_dynamics(data, use_tree) 
-        # these need to be done before the next computation of dt (next iteration of the loop)
+            if (leapfrog):
+                # Leapfrog Integration
+                result = leapfrog_integrator(data, delta_t, running_time, use_tree)
+            else:
+                # Euler integration
+                result = euler_integrator(data, delta_t, use_tree)
+            running_time += delta_t
+            times[count] = running_time
+            count += 1
+            data_lst.append(result)
+            if count == num_steps:
+                files = [data_lst, times, delta_t, tot_time, num_steps] 
+                # the above way of saving means we are saving the value of timestep in the last simulation of each batch
+                # will keep it like that for now so that we can access the typical values of timesteps, later can just save the eta as metadata
+
+                save_data_pkl(files, f'data_batch{batch_idx}.pkl', path)  # saving as a pkl file right now
+                batch_idx += 1
+                # resets the values for the next batch
+                count = 0
+                data_lst = []
+            
+            recalculate_dynamics(data, use_tree) 
+            # these need to be done before the next computation of dt (next iteration of the loop)
 
     # Save any remaining timesteps
     if (data_lst):

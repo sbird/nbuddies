@@ -43,7 +43,7 @@ def movie_3D(sim_name : str, tail_length: int = 10, tot_nstep_eta = None):
         max_mass = max(max_mass, data[n].mass)
         if np.linalg.norm(data[n].position) > max_range: # if Euclidian distance is greater than max_range
             max_range = np.linalg.norm(data[n].position) # set max_range to Euclidian distance
-    max_range *= 2 # add buffer by increasing max_range by 25%
+    max_range *= 2 # add buffer by increasing max_range by 200%
 
     #getting info from sim start
     with open(nbuddies_path + '/data/'+ sim_name + "/data_batch0.pkl", 'rb') as file:
@@ -102,7 +102,7 @@ def movie_3D(sim_name : str, tail_length: int = 10, tot_nstep_eta = None):
         ax.set_xlabel('X [kpc]')
         ax.set_ylabel('Y [kpc]')
         ax.set_zlabel('Z [kpc]')
-        ax.set_title('Black Hole Trajectories')
+        ax.set_title(fr'$N={N}$ Black Hole Trajectories')
 
         # set x,y,z figure limits
         ax.set_xlim( - max_range/2, max_range/2)

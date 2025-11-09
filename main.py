@@ -1,8 +1,9 @@
 from src.ICs import *
 from src.evolution import simulation
 from src.visualizations import *
-from src.Forces import GG
+from src.Forces import GG, ALPHA, THETA_0
 import os
+import argparse
 from pint import UnitRegistry 
 
 ureg = UnitRegistry()
@@ -10,36 +11,75 @@ ureg.define('solarmass = 1.98847e30 * kilogram')
 G = 6.67430e-11 * ureg.meter**3 / (ureg.kilogram * ureg.second**2) 
 GG = G.to("kiloparsec * kilometer**2 / (solarmass * second**2)") 
 
-#sim parameters
-name = "mass_segregation"
-N = 70
-R = 5 * ureg('kpc')
-M = 5e8 * ureg('solarmass')
+# Create the parser
+parser = argparse.ArgumentParser(prog="NBuddies", description="Run N-body simulation on group of custom black holes.", 
+                                 epilog="Created in Fall 2025 quarter of PHYS 206: Compuational Astrophysics at UCR.")
+
+# Add arguments
+# Required
+parser.add_argument("N", type=int, help="Number of black holes in simulation")
+
+parser.add_argument("R", type=float, help="Radius (kpc) of black holes")
+
+parser.add_argument("M", type=float, help="Mass (solar mass) of black holes")
+
+# Optional
+parser.add_argument("--name", type=str, help="Name of simulation run (default: mass_segregation)", default="mass_segregation")
+
+parser.add_argument("--M_ratio", type=float, help="Set mass ratio between two types of black holes")
+
+parser.add_argument("--n_steps", type=int, help="Number of steps for batch saving (default: 10)", default=10)
+
+parser.add_argument("--adaptive_ts", action=argparse.BooleanOptionalAction, 
+                    help="Use adaptive timestep formula (default: True)", default=True)
+
+parser.add_argument("--eta", type=float, help="Set eta when using adaptive time step (default: 0.1)", default=0.1)
+
+parser.add_argument("--use_tree", action=argparse.BooleanOptionalAction, 
+                    help="Use Barnes Hut algorithm to calculate forces (default: True)", default=True)
+
+# Parse the arguments
+args = parser.parse_args()
+
+R = args.R * ureg('kpc')
+M = args.M * ureg('solarmass')
 
 nbuddies_path = os.path.dirname(os.path.realpath(__file__))
-data_path = nbuddies_path+"/data/"+name
+data_path = nbuddies_path+"/data/"+args.name
 
-# empty directory or creat if not exist
+# empty directory or create if non-existent
 if not os.path.exists(data_path):
     os.makedirs(data_path)
 
 # Make ICs
-BHs, masses = generate_plummer_initial_conditions(n_blackholes=N, initial_mass=(M/N).magnitude, scale=R.magnitude, ratio=0.1)
+BHs, masses = generate_plummer_initial_conditions(n_blackholes=args.N, initial_mass=(M/args.N).magnitude, 
+                                                  scale=R.magnitude, ratio=args.M_ratio)
 
 pkl.dump(BHs, open(data_path+"/ICs.pkl", "wb"))
 
 #calc relax time
-t_relax = 0.14*N * (R**(3/2)) / (np.log(0.4*N) * np.sqrt(GG*M))
+t_relax = 0.14*args.N * (R**(3/2)) / (np.log(0.4*args.N) * np.sqrt(GG*M))
 print(t_relax.to("Myr"))
 
 t_segregate = 0.1 * t_relax
-
 sim_time = 3*t_relax
 
 print(f"sim time = {sim_time.to('Myr'):.3} = {sim_time.to('second'):.3}")
+
 #run_sim
-simulation(data_path+"/ICs.pkl", data_path, tot_time=sim_time.to('second').magnitude, nsteps=10, adaptive_dt=True, eta=0.1, use_tree=True)
+print(f"Running {args.name} with: N={args.N}, R={args.R}, M={args.M}, "
+      f"M_ratio={args.M_ratio}, n_steps={args.n_steps}, adaptive_ts={args.adaptive_ts}, eta={args.eta}, use_tree={args.use_tree}")
+
+simulation(data_path+"/ICs.pkl", data_path, tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, 
+           adaptive_dt=args.adaptive_ts, eta=args.eta, use_tree=args.use_tree)
 
 #visualize
-movie_3D(name)
-radial_position_plot(name)
+movie_3D(args.name)
+radial_position_plot(args.name)
+
+
+################################ FIX BELOW ################################
+use_leap_frog = True # Use Leapfrog integration
+use_Euler = False # Use Euler integration
+alpha = ALPHA # Set tree parameter in dynamic criterion
+theta = THETA_0 # Set threshold parameter in Barnes Hut algorithm 
