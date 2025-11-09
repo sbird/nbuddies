@@ -1,7 +1,5 @@
 import numpy as np
-import pickle as pkl
 from .BlackHoles_Struct import BlackHole
-import os
 
 path_to_save_pkl_file = "./"
 GG = 4.301E-6 # Newton's constant [km^2*kpc / solar mass*s^2]
@@ -203,7 +201,7 @@ if __name__ == "__main__":
     # Generate initial conditions for 20 black holes
     n = 20              # number of black holes
     mass = 1e6          # solar masses per BH
-    m1_ratio = 0.05      # mass ratio between two types of black holes
+    m1_ratio = 0.00      # mass ratio between two types of black holes
     scale = 1           # scale (a value)
     blackholes, masses = generate_plummer_initial_conditions(n, mass, scale, m1_ratio)
 
@@ -213,7 +211,7 @@ if __name__ == "__main__":
     pmin = np.inf
     pmax = -np.inf
 
-    # blackholes = blackholes['data']
+    blackholes = blackholes['data']
     for i in range(n):
         print(f"\nBlack hole {i+1}:")
         print(f"  Mass: {blackholes[i].mass:.1f} M_sun")
