@@ -1,5 +1,5 @@
 from .binary_analytical import AnalyticalCheck
-from ..binary import generate_binary_ICs
+from ..ICs import generate_binary_ICs
 import numpy as np
 import os
 from pint import UnitRegistry
