@@ -1,7 +1,8 @@
 from .binary_analytical import AnalyticalCheck
-from ..binary import generate_binary_ICs
+from ..ICs import generate_binary_ICs
 import numpy as np
 import os
+import pickle as pkl
 from pint import UnitRegistry
 from ..evolution import simulation
 from ..visualizations import *
@@ -31,18 +32,23 @@ def test_binary():
 
     # now initialize the black holes with mass, positions, and velocities using the function supplied by the ics team
     # N_BH is the number of BHs, BH_data is the list of length N_BH containing BH objects 
-    generate_binary_ICs(N_BH = 2, custom_vals = custom_vals, analy_sets = False)   
+    data, _ = generate_binary_ICs(N_BH = 2, custom_vals = custom_vals)   
+
+    # Generate and save the initial conditions for the binary system
+    path_to_save_pkl_file = "/src/tests/test_file_for_binary"
+    with open(nbuddies_path + f"{path_to_save_pkl_file}/BH_data_binary.pkl", 'wb') as handle:
+        pkl.dump(data, handle, protocol=pkl.HIGHEST_PROTOCOL)
+    initial_values = nbuddies_path + path_to_save_pkl_file + '/BH_data_binary.pkl'
 
     # Path to the output data directory
-    ICS_path = nbuddies_path + "/data/binary/BH_data_binary.pkl"
-    output_dir = nbuddies_path + "/data/binary/"
+    output_dir = nbuddies_path + path_to_save_pkl_file + "/BH_output/"
 
     # Implement the evolution code here
     Total_time = 5*10**17               # Total evoultion time in seconds
     n_snapshots = 100                   # Number of the output snapshots
 
     # Run the simulation here
-    simulation(ICS_path, output_dir, Total_time, n_snapshots, delta_t = None, adaptive_dt= True, eta = 0.1, use_tree = True )
+    simulation(initial_values, output_dir, Total_time, n_snapshots, delta_t = None, adaptive_dt= True, eta = 0.1, use_tree = True )
 
     # Initialize the AnalyticalCheck object
     analytical_solution = AnalyticalCheck(output_dir)
@@ -69,7 +75,7 @@ def test_binary():
     assert np.all(abs(comp_angular_momentum.m - angular_momentum.m) / angular_momentum.m < 1e-3), "Angular momentum does not match analytical solution within tolerance"
     assert np.all(abs((comp_energy.m - energy.m) / energy.m) < 1e-3), "Energy does not match analytical solution within tolerance"
 
-    #visualize
-    movie_3D("binary")
-    radial_position_plot("binary")
+    # #visualize
+    # movie_3D("binary")
+    # radial_position_plot("binary")
     
