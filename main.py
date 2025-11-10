@@ -48,8 +48,8 @@ parser.add_argument("--do_comp", action=argparse.BooleanOptionalAction,
 
 parser.add_argument("--time", type = float, help="Total simulation time in seconds (default : 5e17)", default=5e17)
 
-parser.add_argument("--do_binary", action=argparse.BooleanOptionalAction,
-                    help="Enable binary initial condition (default: True)", default=True)
+parser.add_argument("--IC_type", choices=["binary", "plummer"], default="plummer",
+                    help="Choose type of initial condition: 'binary' or 'plummer' (default: plummer)")
 
 # Parse the arguments
 args = parser.parse_args()
@@ -68,24 +68,39 @@ sim_time = args.time * ureg('second')
 
 print(f"sim time = {sim_time.to('Myr'):.3} = {sim_time.to('second'):.3}")
 
-if args.do_binary:
-    # Make binary ICs
-    custom_vals = { 'N': 2,
-                'mass': np.array([1.0e7, 1.0e7]), 
-                'position': np.array([[1., 0., 0.], [-1., 0., 0.]]), 
-                'velocity': np.array([[0. ,3.2791 ,0.], [0. ,-3.2791 ,0.]])}
-    BHs, _ = generate_binary_ICs( N_BH = 2, custom_vals = custom_vals )
-    print(f"Running {args.name} with: N={custom_vals['N']}, M={custom_vals['mass']}, "
-    f"n_steps={args.n_steps}, adaptive_ts={args.adaptive_ts}, eta={args.eta}"
-    f"use_leapfrog={args.use_leapfrog}")
+match args.IC_type:
+    case "binary":
+        if args.N != 2:
+            raise ValueError(f"Binary initial conditions require N=2, but got N={args.N}")
+        # Make binary ICs
+        custom_vals = {
+            'N': 2,
+            'mass': np.array([1.0e7, 1.0e7]),
+            'position': np.array([[1., 0., 0.], [-1., 0., 0.]]),
+            'velocity': np.array([[0., 3.2791, 0.], [0., -3.2791, 0.]])
+        }
+        BHs, _ = generate_binary_ICs(N_BH=2, custom_vals=custom_vals)
+        print(
+            f"Running {args.name} with: N={custom_vals['N']}, M={custom_vals['mass']}, "
+            f"n_steps={args.n_steps}, adaptive_ts={args.adaptive_ts}, eta={args.eta}, "
+            f"use_leapfrog={args.use_leapfrog}"
+        )
 
-else:   
-    BHs, _ = generate_plummer_initial_conditions(n_blackholes=args.N, initial_mass=(M/args.N).magnitude, 
-                                                  scale=R.magnitude, ratio=args.M_ratio)
-    print(f"Running {args.name} with: N={args.N}, R={args.R}, M={args.M}, "
-      f"M_ratio={args.M_ratio}, n_steps={args.n_steps}, adaptive_ts={args.adaptive_ts}, eta={args.eta}"
-      f"use_tree={args.use_tree}, use_leapfrog={args.use_leapfrog}")
+    case "plummer":
+        BHs, _ = generate_plummer_initial_conditions(
+            n_blackholes=args.N,
+            initial_mass=(M / args.N).magnitude,
+            scale=R.magnitude,
+            ratio=args.M_ratio
+        )
+        print(
+            f"Running {args.name} with: N={args.N}, R={args.R}, M={args.M}, "
+            f"M_ratio={args.M_ratio}, n_steps={args.n_steps}, adaptive_ts={args.adaptive_ts}, "
+            f"eta={args.eta}, use_tree={args.use_tree}, use_leapfrog={args.use_leapfrog}"
+        )
 
+    case _:
+        raise ValueError(f"Invalid initial condition type: {args.IC_type}")
 
 pkl.dump(BHs, open(data_path+"/ICs.pkl", "wb"))
 
@@ -100,21 +115,26 @@ pkl.dump(BHs, open(data_path+"/ICs.pkl", "wb"))
 # print(f"sim time = {sim_time.to('Myr'):.3} = {sim_time.to('second'):.3}")
 
 #run_sim
-if args.do_comp:
-    simulation(data_path+"/ICs.pkl", data_path+"_tree", tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, 
-        adaptive_dt=args.adaptive_ts, eta=args.eta, use_tree=True)
-    movie_3D(args.name+"_tree")
-    simulation(data_path+"/ICs.pkl", data_path+"_brute", tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, 
-        adaptive_dt=args.adaptive_ts, eta=args.eta, use_tree=False)
-    movie_3D(args.name+"_brute")
-    movie_3D_comparison(args.name)
-else:
-    simulation(data_path+"/ICs.pkl", data_path, tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, 
-           adaptive_dt=args.adaptive_ts, eta=args.eta, use_tree=args.use_tree)
-    movie_3D(args.name)
+# if args.do_comp:
+#     simulation(data_path+"/ICs.pkl", data_path+"_tree", tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, 
+#         adaptive_dt=args.adaptive_ts, eta=args.eta, use_tree=True)
+#     movie_3D(args.name+"_tree")
+#     simulation(data_path+"/ICs.pkl", data_path+"_brute", tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, 
+#         adaptive_dt=args.adaptive_ts, eta=args.eta, use_tree=False)
+#     movie_3D(args.name+"_brute")
+#     movie_3D_comparison(args.name)
+# else:
+#     simulation(data_path+"/ICs.pkl", data_path, tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, 
+#            adaptive_dt=args.adaptive_ts, eta=args.eta, use_tree=args.use_tree)
+#     movie_3D(args.name)
     # radial_position_plot(args.name)
 
+simulation(data_path+"/ICs.pkl", data_path, tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, 
+           adaptive_dt=args.adaptive_ts, eta=args.eta, use_tree=args.use_tree)
+movie_3D(args.name)
+ # radial_position_plot(args.name)
 
+ 
 ################################ FIX BELOW ################################
 alpha = ALPHA # Set tree parameter in dynamic criterion
 theta = THETA_0 # Set threshold parameter in Barnes Hut algorithm 
