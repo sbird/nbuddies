@@ -4,6 +4,7 @@ from src.visualizations import *
 from src.Forces import GG, ALPHA, THETA_0
 import os
 import argparse
+import pickle as pkl
 from pint import UnitRegistry 
 
 ureg = UnitRegistry()
