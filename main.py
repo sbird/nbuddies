@@ -19,14 +19,14 @@ parser = argparse.ArgumentParser(prog="NBuddies", description="Run N-body simula
 # Required
 parser.add_argument("N", type=int, help="Number of black holes in simulation")
 
-parser.add_argument("R", type=float, help="Radius (kpc) of black holes")
+parser.add_argument("R", type=float, help="Scale Plummer sphere radius (kpc) of black holes")
 
 parser.add_argument("M", type=float, help="Mass (solar mass) of black holes")
 
 # Optional
 parser.add_argument("--name", type=str, help="Name of simulation run (default: mass_segregation)", default="mass_segregation")
 
-parser.add_argument("--M_ratio", type=float, help="Set mass ratio between two types of black holes")
+parser.add_argument("--M_ratio", type=float, help="Set mass ratio between two types of black holes", default=0.0)
 
 parser.add_argument("--n_steps", type=int, help="Number of steps for batch saving (default: 10)", default=10)
 
@@ -71,7 +71,7 @@ print(f"Running {args.name} with: N={args.N}, R={args.R}, M={args.M}, "
       f"M_ratio={args.M_ratio}, n_steps={args.n_steps}, adaptive_ts={args.adaptive_ts}, eta={args.eta}, use_tree={args.use_tree}")
 
 simulation(data_path+"/ICs.pkl", data_path, tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, 
-           adaptive_dt=args.adaptive_ts, eta=args.eta, use_tree=args.use_tree)
+           adaptive_dt=args.adaptive_ts, eta=args.eta, leapfrog = True, use_tree=args.use_tree)
 
 #visualize
 movie_3D(args.name)
