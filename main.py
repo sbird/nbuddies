@@ -4,6 +4,7 @@ from src.visualizations import *
 from src.Forces import GG, ALPHA, THETA_0
 import os
 import argparse
+import pickle as pkl
 from pint import UnitRegistry 
 
 ureg = UnitRegistry()
@@ -19,14 +20,14 @@ parser = argparse.ArgumentParser(prog="NBuddies", description="Run N-body simula
 # Required
 parser.add_argument("N", type=int, help="Number of black holes in simulation")
 
-parser.add_argument("R", type=float, help="Radius (kpc) of black holes")
+parser.add_argument("R", type=float, help="Scale Plummer sphere radius (kpc) of black holes")
 
 parser.add_argument("M", type=float, help="Mass (solar mass) of black holes")
 
 # Optional
 parser.add_argument("--name", type=str, help="Name of simulation run (default: mass_segregation)", default="mass_segregation")
 
-parser.add_argument("--M_ratio", type=float, help="Set mass ratio between two types of black holes")
+parser.add_argument("--M_ratio", type=float, help="Set mass ratio between two types of black holes", default=0.0)
 
 parser.add_argument("--n_steps", type=int, help="Number of steps for batch saving (default: 10)", default=10)
 
@@ -37,6 +38,9 @@ parser.add_argument("--eta", type=float, help="Set eta when using adaptive time 
 
 parser.add_argument("--use_tree", action=argparse.BooleanOptionalAction, 
                     help="Use Barnes Hut algorithm to calculate forces (default: True)", default=True)
+
+parser.add_argument("--use_leapfrog", action=argparse.BooleanOptionalAction, 
+                    help="Use Leap frog integration (default: True). False uses Euler integration", default=True)
 
 # Parse the arguments
 args = parser.parse_args()
@@ -68,10 +72,11 @@ print(f"sim time = {sim_time.to('Myr'):.3} = {sim_time.to('second'):.3}")
 
 #run_sim
 print(f"Running {args.name} with: N={args.N}, R={args.R}, M={args.M}, "
-      f"M_ratio={args.M_ratio}, n_steps={args.n_steps}, adaptive_ts={args.adaptive_ts}, eta={args.eta}, use_tree={args.use_tree}")
+      f"M_ratio={args.M_ratio}, n_steps={args.n_steps}, adaptive_ts={args.adaptive_ts}, eta={args.eta}, use_tree={args.use_tree}, "
+      f"use_leapfrog={args.use_leapfrog}")
 
 simulation(data_path+"/ICs.pkl", data_path, tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, 
-           adaptive_dt=args.adaptive_ts, eta=args.eta, use_tree=args.use_tree)
+           adaptive_dt=args.adaptive_ts, eta=args.eta, leapfrog=args.use_leapfrog, use_tree=args.use_tree)
 
 #visualize
 movie_3D(args.name)
@@ -79,7 +84,5 @@ radial_position_plot(args.name)
 
 
 ################################ FIX BELOW ################################
-use_leap_frog = True # Use Leapfrog integration
-use_Euler = False # Use Euler integration
 alpha = ALPHA # Set tree parameter in dynamic criterion
 theta = THETA_0 # Set threshold parameter in Barnes Hut algorithm 
