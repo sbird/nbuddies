@@ -2,10 +2,11 @@ import os
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
+import shutil
 
-nbuddies_path = os.path.dirname(os.path.realpath(__file__))
+nbuddies_path = (os.path.dirname(os.path.realpath(__file__)))
 
-def movie_3D_comparison(tail_length: int = 10, tot_nstep_eta=None):
+def movie_3D_comparison(sim_name : str, tail_length: int = 10, tot_nstep_eta=None):
     """
     Loads both data_tree and data_brute simulation data and makes a combined movie
     showing both trajectories together in 3D space with tails behind them.
@@ -23,18 +24,19 @@ def movie_3D_comparison(tail_length: int = 10, tot_nstep_eta=None):
     """
 
     # set up
-    if not os.path.exists(nbuddies_path + "/movie_dump_comparison"):  # check if dir exists
-        os.makedirs(nbuddies_path + "/movie_dump_comparison")  # if not, create dir path
+    if os.path.exists(nbuddies_path+"/movie_dump_comparison/"+sim_name): # check if dir exists
+        shutil.rmtree(nbuddies_path+"/movie_dump_comparison/"+sim_name) #pruge old images  
+    os.makedirs(nbuddies_path+"/movie_dump_comparison/"+sim_name) # create dir path
 
     # get info from sim end
-    last_batch_tree = _find_last_batch_num("/data_tree")
-    last_batch_brute = _find_last_batch_num("/data_brute")
+    last_batch_tree = _find_last_batch_num(sim_name, "_tree")
+    last_batch_brute = _find_last_batch_num(sim_name, "_brute")
     last_batch_num = min(last_batch_tree, last_batch_brute)  # ensure equal frame count
 
     # Load last batch and initialize data structures
-    with open(nbuddies_path + "/data_tree" + f"/data_batch{last_batch_num}.pkl", 'rb') as file:
+    with open(nbuddies_path + '/data/' + sim_name + "_tree" + f"/data_batch{last_batch_num}.pkl", 'rb') as file:
         data_tree = pickle.load(file)['data'][0]
-    with open(nbuddies_path + "/data_brute" + f"/data_batch{last_batch_num}.pkl", 'rb') as file:
+    with open(nbuddies_path + '/data/' + sim_name + "_brute" + f"/data_batch{last_batch_num}.pkl", 'rb') as file:
         data_brute = pickle.load(file)['data'][0]
     N_tree = len(data_tree)
     N_brute = len(data_brute)
@@ -48,9 +50,9 @@ def movie_3D_comparison(tail_length: int = 10, tot_nstep_eta=None):
     max_range *= 2  # add buffer
 
     # get info from sim start
-    with open(nbuddies_path + "/data_tree/data_batch0.pkl", 'rb') as file:
+    with open(nbuddies_path + '/data/' + sim_name + "_tree/data_batch0.pkl", 'rb') as file:
         init_tree = pickle.load(file)['data'][0]
-    with open(nbuddies_path + "/data_brute/data_batch0.pkl", 'rb') as file:
+    with open(nbuddies_path  + '/data/' + sim_name + "_brute/data_batch0.pkl", 'rb') as file:
         init_brute = pickle.load(file)['data'][0]
 
     # Create 3D arrays to store tail positions
@@ -72,9 +74,9 @@ def movie_3D_comparison(tail_length: int = 10, tot_nstep_eta=None):
             plotting_brute[:, :, j] = plotting_brute[:, :, j + 1]
 
         # Load current frame data
-        with open(nbuddies_path + f"/data_tree/data_batch{i}.pkl", 'rb') as file:
+        with open(nbuddies_path +  '/data/' + sim_name + f"_tree/data_batch{i}.pkl", 'rb') as file:
             data_tree = pickle.load(file)['data'][0]
-        with open(nbuddies_path + f"/data_brute/data_batch{i}.pkl", 'rb') as file:
+        with open(nbuddies_path +  '/data/' + sim_name + f"_brute/data_batch{i}.pkl", 'rb') as file:
             data_brute = pickle.load(file)['data'][0]
 
         # Update tails
@@ -129,30 +131,32 @@ def movie_3D_comparison(tail_length: int = 10, tot_nstep_eta=None):
         ax.legend(handles=[blue_proxy, red_proxy], loc='upper right')
 
         plt.tight_layout()
-        plt.savefig(nbuddies_path + f"/movie_dump_comparison/trajectories_{i}.png",
+        plt.savefig(nbuddies_path + "/movie_dump_comparison/" +sim_name+ f"/trajectories_{i}.png",
                     dpi=300, bbox_inches='tight')
         plt.close()
 
-    _recompile_movie_3D_compare(tot_nstep_eta)
+    _recompile_movie_3D_compare(sim_name)
 
 
-def _find_last_batch_num(brute_or_tree) -> int:
+def _find_last_batch_num(sim_name, brute_or_tree) -> int:
     """
     Finds number of last batch file saved for either data_tree or data_brute
     """
     i = 0
-    while os.path.exists(nbuddies_path + brute_or_tree + f"/data_batch{i}.pkl"):
+    while os.path.exists(nbuddies_path + '/data/' + sim_name  + brute_or_tree + f"/data_batch{i}.pkl"):
         i += 1
     return i - 1
 
 
-def _recompile_movie_3D_compare(tot_nstep_eta):
+def _recompile_movie_3D_compare(sim_name):
     """
     Deletes old comparison movie if it exists, then recreates it by compiling the PNGs in movie_dump_comparison
     """
-    movie_path = nbuddies_path + f"/trajectories_compare_{tot_nstep_eta}.mkv"
-    if os.path.exists(movie_path):
-        os.remove(movie_path)
-    os.system("ffmpeg -framerate 12 -start_number 0 -i " +
-              nbuddies_path + "/movie_dump_comparison/trajectories_%01d.png -q:v 0 " +
-              movie_path)
+    
+    if not os.path.exists(nbuddies_path+"/visuals/"+sim_name):
+        os.makedirs(nbuddies_path+"/visuals/"+sim_name)
+
+    if os.path.exists(nbuddies_path + "/visuals/" + sim_name + f"/trajectories.mkv"): # checks if path exists
+        os.remove(nbuddies_path + "/visuals/" + sim_name + f"/trajectories.mkv") # if it does, remove path to old movie file
+    os.system("ffmpeg -framerate 12 -start_number 0 -i " + nbuddies_path + "/movie_dump_comparison/"+ sim_name +"/trajectories_%01d.png -q:v 0 " + nbuddies_path + "/visuals/" + sim_name + f"/trajectories.mkv") # recreate movie
+
