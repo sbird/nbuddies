@@ -278,7 +278,8 @@ def comp_adaptive_dt(acc, jerk, snap, eta):
     return dt
 
 
-def simulation(initial_file, output_folder, tot_time, nsteps, delta_t = None, adaptive_dt = False, eta = None, use_tree = True):
+def simulation(initial_file, output_folder, tot_time, nsteps, delta_t = None, adaptive_dt = False, eta = None, leapfrog = True, 
+               use_tree = True):
     """
     Wrapper Function for the simulation of time evolve N-body Problem
     
@@ -290,6 +291,7 @@ def simulation(initial_file, output_folder, tot_time, nsteps, delta_t = None, ad
     nsteps : number of steps for each saving of the batch
     adaptive_dt: whether to use the adaptive timestep formula using eta
     eta: the constant for the adpative timestep formula. Cannot be none if adpative_dt is True. 
+    leapfrog: Integration technique. Default to Leap frog, False uses Euler
     use_tree : whether to use the BHT code for force calculation (default True)
     
     Outputs:
@@ -304,9 +306,9 @@ def simulation(initial_file, output_folder, tot_time, nsteps, delta_t = None, ad
         if eta is None:
             raise ValueError("Adaptive timestepping (adaptive_dt = True) requires a value of eta to be given.")
         else:
-            update_params_adaptive_timestep(data, tot_time, nsteps, eta, output_folder, use_tree)
+            update_params_adaptive_timestep(data, tot_time, nsteps, eta, output_folder, leapfrog, use_tree)
     else:
-        update_params(data, tot_time, nsteps, delta_t, output_folder, use_tree)
+        update_params(data, tot_time, nsteps, delta_t, output_folder, leapfrog, use_tree)
 
 
 # print('\nNeed to call the simulation function properly to ensure it works though :)')
