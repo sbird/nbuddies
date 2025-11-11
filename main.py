@@ -114,20 +114,6 @@ pkl.dump(BHs, open(data_path+"/ICs.pkl", "wb"))
 
 # print(f"sim time = {sim_time.to('Myr'):.3} = {sim_time.to('second'):.3}")
 
-#run_sim
-# if args.do_comp:
-#     simulation(data_path+"/ICs.pkl", data_path+"_tree", tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, 
-#         adaptive_dt=args.adaptive_ts, eta=args.eta, use_tree=True)
-#     movie_3D(args.name+"_tree")
-#     simulation(data_path+"/ICs.pkl", data_path+"_brute", tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, 
-#         adaptive_dt=args.adaptive_ts, eta=args.eta, use_tree=False)
-#     movie_3D(args.name+"_brute")
-#     movie_3D_comparison(args.name)
-# else:
-#     simulation(data_path+"/ICs.pkl", data_path, tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, 
-#            adaptive_dt=args.adaptive_ts, eta=args.eta, use_tree=args.use_tree)
-#     movie_3D(args.name)
-    # radial_position_plot(args.name)
 
 simulation(data_path+"/ICs.pkl", data_path, tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, 
            adaptive_dt=args.adaptive_ts, eta=args.eta, use_tree=args.use_tree)
