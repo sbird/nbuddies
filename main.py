@@ -43,9 +43,6 @@ parser.add_argument("--use_tree", action=argparse.BooleanOptionalAction,
 parser.add_argument("--use_leapfrog", action=argparse.BooleanOptionalAction, 
                     help="Use Leap frog integration (default: True). False uses Euler integration", default=True)
 
-parser.add_argument("--do_comp", action=argparse.BooleanOptionalAction,
-                    help="Generate comparison movie between tree and brute force methods (default: True)", default=True)
-
 parser.add_argument("--time", type = float, help="Total simulation time in seconds (default : 5e17)", default=5e17)
 
 parser.add_argument("--IC_type", choices=["binary", "plummer"], default="plummer",
