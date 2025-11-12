@@ -2,10 +2,15 @@ import os
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
+import shutil
+from src.ICs import *
+import pickle as pkl
+from src.evolution import *
+from pint import UnitRegistry
 
 nbuddies_path = os.path.dirname(os.path.realpath(__file__))
 
-def movie_3D_comparison(tail_length: int = 10, tot_nstep_eta=None):
+def movie_3D_comparison(sim_name : str, tail_length: int = 10):
     """
     Loads both data_tree and data_brute simulation data and makes a combined movie
     showing both trajectories together in 3D space with tails behind them.
@@ -17,24 +22,22 @@ def movie_3D_comparison(tail_length: int = 10, tot_nstep_eta=None):
     ----------
     tail_length : int, default 10
         Length of tail trailing behind points.
-    tot_nstep_eta: str
-        Used to dynamically save the resulting movie with info about 
-        total time (sec), num of timesteps per batch, eta for adaptive timestep computation.
     """
 
     # set up
-    if not os.path.exists(nbuddies_path + "/movie_dump_comparison"):  # check if dir exists
-        os.makedirs(nbuddies_path + "/movie_dump_comparison")  # if not, create dir path
+    if os.path.exists(nbuddies_path+"/addtnl_checks/movie_dump_comparison/"+sim_name): # check if dir exists
+        shutil.rmtree(nbuddies_path+"/addtnl_checks/movie_dump_comparison/"+sim_name) #pruge old images  
+    os.makedirs(nbuddies_path+"/addtnl_checks/movie_dump_comparison/"+sim_name) # create dir path
 
     # get info from sim end
-    last_batch_tree = _find_last_batch_num("/data_tree")
-    last_batch_brute = _find_last_batch_num("/data_brute")
+    last_batch_tree = _find_last_batch_num(sim_name, "/tree")
+    last_batch_brute = _find_last_batch_num(sim_name, "/brute")
     last_batch_num = min(last_batch_tree, last_batch_brute)  # ensure equal frame count
 
     # Load last batch and initialize data structures
-    with open(nbuddies_path + "/data_tree" + f"/data_batch{last_batch_num}.pkl", 'rb') as file:
+    with open(nbuddies_path + '/addtnl_checks/' + sim_name + "/tree" + f"/data_batch{last_batch_num}.pkl", 'rb') as file:
         data_tree = pickle.load(file)['data'][0]
-    with open(nbuddies_path + "/data_brute" + f"/data_batch{last_batch_num}.pkl", 'rb') as file:
+    with open(nbuddies_path + '/addtnl_checks/' + sim_name + "/brute" + f"/data_batch{last_batch_num}.pkl", 'rb') as file:
         data_brute = pickle.load(file)['data'][0]
     N_tree = len(data_tree)
     N_brute = len(data_brute)
@@ -48,9 +51,9 @@ def movie_3D_comparison(tail_length: int = 10, tot_nstep_eta=None):
     max_range *= 2  # add buffer
 
     # get info from sim start
-    with open(nbuddies_path + "/data_tree/data_batch0.pkl", 'rb') as file:
+    with open(nbuddies_path + '/addtnl_checks/' + sim_name + "/tree/data_batch0.pkl", 'rb') as file:
         init_tree = pickle.load(file)['data'][0]
-    with open(nbuddies_path + "/data_brute/data_batch0.pkl", 'rb') as file:
+    with open(nbuddies_path  + '/addtnl_checks/' + sim_name + "/brute/data_batch0.pkl", 'rb') as file:
         init_brute = pickle.load(file)['data'][0]
 
     # Create 3D arrays to store tail positions
@@ -72,9 +75,9 @@ def movie_3D_comparison(tail_length: int = 10, tot_nstep_eta=None):
             plotting_brute[:, :, j] = plotting_brute[:, :, j + 1]
 
         # Load current frame data
-        with open(nbuddies_path + f"/data_tree/data_batch{i}.pkl", 'rb') as file:
+        with open(nbuddies_path +  '/addtnl_checks/' + sim_name + f"/tree/data_batch{i}.pkl", 'rb') as file:
             data_tree = pickle.load(file)['data'][0]
-        with open(nbuddies_path + f"/data_brute/data_batch{i}.pkl", 'rb') as file:
+        with open(nbuddies_path +  '/addtnl_checks/' + sim_name + f"/brute/data_batch{i}.pkl", 'rb') as file:
             data_brute = pickle.load(file)['data'][0]
 
         # Update tails
@@ -129,30 +132,83 @@ def movie_3D_comparison(tail_length: int = 10, tot_nstep_eta=None):
         ax.legend(handles=[blue_proxy, red_proxy], loc='upper right')
 
         plt.tight_layout()
-        plt.savefig(nbuddies_path + f"/movie_dump_comparison/trajectories_{i}.png",
+        plt.savefig(nbuddies_path + "/addtnl_checks/movie_dump_comparison/" +sim_name+ f"/trajectories_{i}.png",
                     dpi=300, bbox_inches='tight')
         plt.close()
 
-    _recompile_movie_3D_compare(tot_nstep_eta)
+    _recompile_movie_3D_compare(sim_name)
 
 
-def _find_last_batch_num(brute_or_tree) -> int:
+def _find_last_batch_num(sim_name, brute_or_tree) -> int:
     """
     Finds number of last batch file saved for either data_tree or data_brute
     """
     i = 0
-    while os.path.exists(nbuddies_path + brute_or_tree + f"/data_batch{i}.pkl"):
+    while os.path.exists(nbuddies_path + '/addtnl_checks/' + sim_name  + brute_or_tree + f"/data_batch{i}.pkl"):
         i += 1
     return i - 1
 
 
-def _recompile_movie_3D_compare(tot_nstep_eta):
+def _recompile_movie_3D_compare(sim_name):
     """
     Deletes old comparison movie if it exists, then recreates it by compiling the PNGs in movie_dump_comparison
     """
-    movie_path = nbuddies_path + f"/trajectories_compare_{tot_nstep_eta}.mkv"
-    if os.path.exists(movie_path):
-        os.remove(movie_path)
-    os.system("ffmpeg -framerate 12 -start_number 0 -i " +
-              nbuddies_path + "/movie_dump_comparison/trajectories_%01d.png -q:v 0 " +
-              movie_path)
+    
+    if not os.path.exists(nbuddies_path+'/addtnl_checks/' + sim_name+"/visuals/"):
+        os.makedirs(nbuddies_path+ '/addtnl_checks/' +sim_name+"/visuals/")
+
+    if os.path.exists(nbuddies_path + sim_name +"/visuals/" + f"/trajectories.mkv"): # checks if path exists
+        os.remove(nbuddies_path + sim_name + "/visuals/" + f"/trajectories.mkv") # if it does, remove path to old movie file
+    os.system("ffmpeg -framerate 12 -start_number 0 -i " + nbuddies_path + "/addtnl_checks/movie_dump_comparison/"+ sim_name +"/trajectories_%01d.png -q:v 0 " + nbuddies_path + '/addtnl_checks/' + sim_name +'/visuals' + f"/trajectories.mkv") # recreate movie
+
+if __name__ == "__main__":
+
+    ureg = UnitRegistry()
+
+    #define the parameters
+    sim_name = "test_binary"             #enter desired name of simulation
+    data_path = nbuddies_path + "/addtnl_checks/" + sim_name
+    sim_time = 5e16 * ureg('second')
+    nsteps = 10
+    adap_dt = True
+    eta = 0.1
+
+    def check_directory(folder_path):
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)  # Remove the folder and all its contents
+
+        os.makedirs(folder_path)  #make new empty folder
+    
+    check_directory(data_path)
+
+    #generate ICs
+    
+    #choose which model you want to implement - comment out the other one
+
+    # #plummer sphere model
+    # np.random.seed(43)
+    # n = 3              # number of black holes
+    # mass = 1e6          # solar masses per BH
+    # m1_ratio = 0.00      # mass ratio between two types of black holes
+    # scale = 1           # scale (a value)
+    # BHs, _ = generate_plummer_initial_conditions(n, mass, scale, m1_ratio)
+
+    #binary model
+    custom_vals = {
+            'N': 2,
+            'mass': np.array([1.0e7, 1.0e7]),
+            'position': np.array([[1., 0., 0.], [-1., 0., 0.]]),
+            'velocity': np.array([[0., 3.2791, 0.], [0., -3.2791, 0.]])
+        }
+    BHs, _ = generate_binary_ICs(N_BH=2, custom_vals=custom_vals)
+
+    pkl.dump(BHs, open(data_path+"/ICs.pkl", "wb"))
+
+    #call simulation for brute and tree methods 
+    simulation(data_path+"/ICs.pkl", data_path+"/tree", tot_time=sim_time.to('second').magnitude, nsteps= nsteps, 
+        adaptive_dt= adap_dt , eta= eta, use_tree=True)
+    simulation(data_path+"/ICs.pkl", data_path+"/brute", tot_time=sim_time.to('second').magnitude, nsteps= nsteps, 
+        adaptive_dt= adap_dt , eta= eta, use_tree=False)
+
+    # create movie
+    movie_3D_comparison(sim_name)

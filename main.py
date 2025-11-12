@@ -4,8 +4,9 @@ from src.visualizations import *
 from src.Forces import GG
 import os
 import argparse
-import pickle as pkl
 from pint import UnitRegistry 
+from visualizations_comparisons import movie_3D_comparison
+import pickle as pkl
 
 ureg = UnitRegistry()
 ureg.define('solarmass = 1.98847e30 * kilogram') 
@@ -51,6 +52,11 @@ parser.add_argument("--THETA_0", type=float, help="Set accuracy parameter for ge
 parser.add_argument("--use_leapfrog", action=argparse.BooleanOptionalAction, 
                     help="Use Leap frog integration (default: True). False uses Euler integration", default=True)
 
+parser.add_argument("--time", type = float, help="Total simulation time in seconds (default : 5e17)", default=5e17)
+
+parser.add_argument("--IC_type", choices=["binary", "plummer"], default="plummer",
+                    help="Choose type of initial condition: 'binary' or 'plummer' (default: plummer)")
+
 # Parse the arguments
 args = parser.parse_args()
 
@@ -67,30 +73,59 @@ data_path = nbuddies_path+"/data/"+args.name
 if not os.path.exists(data_path):
     os.makedirs(data_path)
 
-# Make ICs
-BHs, masses = generate_plummer_initial_conditions(n_blackholes=args.N, initial_mass=(M/args.N).magnitude, 
-                                                  scale=R.magnitude, ratio=args.M_ratio)
-
-pkl.dump(BHs, open(data_path+"/ICs.pkl", "wb"))
-
-#calc relax time
-t_relax = 0.14*args.N * (R**(3/2)) / (np.log(0.4*args.N) * np.sqrt(GG*M))
-print(t_relax.to("Myr"))
-
-t_segregate = 0.1 * t_relax
-sim_time = 3*t_relax
+sim_time = args.time * ureg('second')
 
 print(f"sim time = {sim_time.to('Myr'):.3} = {sim_time.to('second'):.3}")
 
-#run_sim
-print(f"Running {args.name} with: N={args.N}, R={args.R}, M={args.M}, "
-      f"M_ratio={args.M_ratio}, n_steps={args.n_steps}, adaptive_ts={args.adaptive_ts}, eta={args.eta}, use_tree={args.use_tree}, "
-      f"use_leapfrog={args.use_leapfrog}")
+match args.IC_type:
+    case "binary":
+        if args.N != 2:
+            raise ValueError(f"Binary initial conditions require N=2, but got N={args.N}")
+        # Make binary ICs
+        custom_vals = {
+            'N': 2,
+            'mass': np.array([1.0e7, 1.0e7]),
+            'position': np.array([[1., 0., 0.], [-1., 0., 0.]]),
+            'velocity': np.array([[0., 3.2791, 0.], [0., -3.2791, 0.]])
+        }
+        BHs, _ = generate_binary_ICs(N_BH=2, custom_vals=custom_vals)
+        print(
+            f"Running {args.name} with: N={custom_vals['N']}, M={custom_vals['mass']}, "
+            f"n_steps={args.n_steps}, adaptive_ts={args.adaptive_ts}, eta={args.eta}, "
+            f"use_leapfrog={args.use_leapfrog}"
+        )
+
+    case "plummer":
+        BHs, _ = generate_plummer_initial_conditions(
+            n_blackholes=args.N,
+            initial_mass=(M / args.N).magnitude,
+            scale=R.magnitude,
+            ratio=args.M_ratio
+        )
+        print(
+            f"Running {args.name} with: N={args.N}, R={args.R}, M={args.M}, "
+            f"M_ratio={args.M_ratio}, n_steps={args.n_steps}, adaptive_ts={args.adaptive_ts}, "
+            f"eta={args.eta}, use_tree={args.use_tree}, use_leapfrog={args.use_leapfrog}"
+        )
+
+    case _:
+        raise ValueError(f"Invalid initial condition type: {args.IC_type}")
+
+pkl.dump(BHs, open(data_path+"/ICs.pkl", "wb"))
+
+
+# #calc relax time
+# t_relax = 0.14*args.N * (R**(3/2)) / (np.log(0.4*args.N) * np.sqrt(GG*M))
+# print(t_relax.to("Myr"))
+
+# t_segregate = 0.1 * t_relax
+# sim_time = 3*t_relax
+
+# print(f"sim time = {sim_time.to('Myr'):.3} = {sim_time.to('second'):.3}")
 
 simulation(data_path+"/ICs.pkl", data_path, tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, delta_t = args.delta_t,
            adaptive_dt=args.adaptive_ts, eta=args.eta, leapfrog=args.use_leapfrog, use_tree=args.use_tree,
            use_dynamic_criterion= not args.use_geometric_criterion, ALPHA = args.ALPHA, THETA_0 = args.THETA_0)
 
-#visualize
 movie_3D(args.name)
 radial_position_plot(args.name)
