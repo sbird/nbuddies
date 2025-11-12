@@ -1,7 +1,7 @@
 from src.ICs import *
 from src.evolution import simulation
 from src.visualizations import *
-from src.Forces import GG, ALPHA, THETA_0
+from src.Forces import GG
 import os
 import argparse
 import pickle as pkl
@@ -14,7 +14,7 @@ GG = G.to("kiloparsec * kilometer**2 / (solarmass * second**2)")
 
 # Create the parser
 parser = argparse.ArgumentParser(prog="NBuddies", description="Run N-body simulation on group of custom black holes.", 
-                                 epilog="Created in Fall 2025 quarter of PHYS 206: Compuational Astrophysics at UCR.")
+                                 epilog="Created in Fall 2025 quarter of PHYS 206: Computational Astrophysics at UCR.")
 
 # Add arguments
 # Required
@@ -34,10 +34,19 @@ parser.add_argument("--n_steps", type=int, help="Number of steps for batch savin
 parser.add_argument("--adaptive_ts", action=argparse.BooleanOptionalAction, 
                     help="Use adaptive timestep formula (default: True)", default=True)
 
+parser.add_argument("--delta_t", type=float, help="Set timestep if using fixed timestep", default=None)
+
 parser.add_argument("--eta", type=float, help="Set eta when using adaptive time step (default: 0.1)", default=0.1)
 
 parser.add_argument("--use_tree", action=argparse.BooleanOptionalAction, 
                     help="Use Barnes Hut algorithm to calculate forces (default: True)", default=True)
+
+parser.add_argument("--use_geometric_criterion", action=argparse.BooleanOptionalAction, 
+                    help="Use geometric criterion to determine if nodes of Barnes Hut tree can be approximated as point masses. If false uses dynamic criterion (default: False)", default=False)
+
+parser.add_argument("--ALPHA", type=float, help="Set accuracy parameter for dynamic node approximation criterion (default: 0.1)", default=0.1)
+
+parser.add_argument("--THETA_0", type=float, help="Set accuracy parameter for geometric node approximation criterion (default: 0.1)", default=0.1)
 
 parser.add_argument("--use_leapfrog", action=argparse.BooleanOptionalAction, 
                     help="Use Leap frog integration (default: True). False uses Euler integration", default=True)
@@ -45,13 +54,16 @@ parser.add_argument("--use_leapfrog", action=argparse.BooleanOptionalAction,
 # Parse the arguments
 args = parser.parse_args()
 
+if args.delta_t is None and not args.adaptive_ts:
+    raise("Timestep must be specified if not using adaptive timestep")
+
 R = args.R * ureg('kpc')
 M = args.M * ureg('solarmass')
 
 nbuddies_path = os.path.dirname(os.path.realpath(__file__))
 data_path = nbuddies_path+"/data/"+args.name
 
-# empty directory or create if non-existent
+#create directory if non-existent
 if not os.path.exists(data_path):
     os.makedirs(data_path)
 
@@ -75,14 +87,10 @@ print(f"Running {args.name} with: N={args.N}, R={args.R}, M={args.M}, "
       f"M_ratio={args.M_ratio}, n_steps={args.n_steps}, adaptive_ts={args.adaptive_ts}, eta={args.eta}, use_tree={args.use_tree}, "
       f"use_leapfrog={args.use_leapfrog}")
 
-simulation(data_path+"/ICs.pkl", data_path, tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, 
-           adaptive_dt=args.adaptive_ts, eta=args.eta, leapfrog=args.use_leapfrog, use_tree=args.use_tree)
+simulation(data_path+"/ICs.pkl", data_path, tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, delta_t = args.delta_t,
+           adaptive_dt=args.adaptive_ts, eta=args.eta, leapfrog=args.use_leapfrog, use_tree=args.use_tree,
+           use_dynamic_criterion= not args.use_geometric_criterion, ALPHA = args.ALPHA, THETA_0 = args.THETA_0)
 
 #visualize
 movie_3D(args.name)
 radial_position_plot(args.name)
-
-
-################################ FIX BELOW ################################
-alpha = ALPHA # Set tree parameter in dynamic criterion
-theta = THETA_0 # Set threshold parameter in Barnes Hut algorithm 

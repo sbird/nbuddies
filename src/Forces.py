@@ -18,10 +18,6 @@ ureg.define('solarmass = 1.98847e30 * kilogram')
 G = 6.67430e-11 * ureg.meter**3 / (ureg.kilogram * ureg.second**2) 
 GG = G.to("kiloparsec * kilometer**2 / (solarmass * second**2)") 
 
-#Tree accuracy parameters
-ALPHA = 1e-4
-THETA_0 = 0.1
-
 def _comp_acceleration(BH_i : BlackHole, BH_j : BlackHole):
     """ 
     Acceleration Function: Compute acceleration on BH_i due to BH_j
@@ -102,7 +98,7 @@ def _comp_snap(BH_i: BlackHole, BH_j: BlackHole, previous_accel_i : list[float])
                                               + 15 * (rdotv**2) * r_ij / r**7 )
     return snap.to('km/s^4')
 
-def recalculate_dynamics(BHs: list[BlackHole], use_tree : bool = True):
+def recalculate_dynamics(BHs: list[BlackHole], use_tree : bool, use_dynamic_criterion : bool, ALPHA : float, THETA_0 : float):
     """
     Function for looping over black holes 
     Recalculates acceleration jerk and snap
@@ -113,6 +109,12 @@ def recalculate_dynamics(BHs: list[BlackHole], use_tree : bool = True):
         the blackholes to have their dynamical values
     use_tree : bool, default False
         whether or not to use the tree for force calculation
+    use_dynamic_criterion : bool
+        determines if dynamic or geometric criterion is used for node approximation
+    ALPHA : float
+        accuracy parameter for dynamic criterion
+    THETA_0 : float
+        accuracy parameter for geometric criterion
     """
     if use_tree:
         root = build_tree(BHs)
@@ -126,7 +128,7 @@ def recalculate_dynamics(BHs: list[BlackHole], use_tree : bool = True):
 
         #Tree calculation
         if use_tree:
-            _calculate_accel_with_tree(BH_i, root, previous_accel_i)
+            _calculate_accel_with_tree(BH_i, root, previous_accel_i, use_dynamic_criterion, ALPHA, THETA_0)
             continue
 
         #brute force calculation
@@ -138,7 +140,7 @@ def recalculate_dynamics(BHs: list[BlackHole], use_tree : bool = True):
             BH_i.jerk += _comp_jerk(BH_i, BH_j)
             BH_i.snap += _comp_snap(BH_i, BH_j, previous_accel_i)
 
-def _calculate_accel_with_tree(bh : BlackHole, root : Node, previous_accel : list[float]):
+def _calculate_accel_with_tree(bh : BlackHole, root : Node, previous_accel : list[float], use_dynamic_criterion : bool, ALPHA : float, THETA_0 : float):
     """
     Recursively calculates acceleration with tree
 
@@ -150,6 +152,12 @@ def _calculate_accel_with_tree(bh : BlackHole, root : Node, previous_accel : lis
         root node of tree from which accleration is being computed
     previous_accel : list[float]
         acceleration of bh at previous timestep
+    use_dynamic_criterion : bool
+        determines if dynamic or geometric criterion is used for node approximation
+    ALPHA : float
+        accuracy parameter for dynamic criterion
+    THETA_0 : float
+        accuracy parameter for geometric criterion
     """
     #ignore empty nodes
     if len(root.enclosed_blackholes) == 0:
@@ -167,7 +175,7 @@ def _calculate_accel_with_tree(bh : BlackHole, root : Node, previous_accel : lis
         return
     
     #compute nodes which meet approximation criterion
-    if node_is_approximatable(bh, root, np.linalg.norm(previous_accel)) and not root.is_inside(bh.position):
+    if node_is_approximatable(bh, root, np.linalg.norm(previous_accel), use_dynamic_criterion, ALPHA, THETA_0) and not root.is_inside(bh.position):
         bh.acceleration += _comp_acceleration(bh, root)
         bh.jerk += _comp_jerk(bh, root)
         bh.snap += _comp_snap(bh, root, previous_accel)
@@ -175,9 +183,9 @@ def _calculate_accel_with_tree(bh : BlackHole, root : Node, previous_accel : lis
     
     #descend tree further as node did not meet any end criterion
     for child in root.children:
-        _calculate_accel_with_tree(bh, child, previous_accel)
+        _calculate_accel_with_tree(bh, child, previous_accel, use_dynamic_criterion, ALPHA, THETA_0)
     
-def node_is_approximatable(bh : BlackHole, node : Node, previous_accel : float, use_dynamic_criterion : bool = True):
+def node_is_approximatable(bh : BlackHole, node : Node, previous_accel : float, use_dynamic_criterion : bool, ALPHA : float, THETA_0 : float):
     """
     Determines if Node is safe to approximate or if tree needs to be further explored
 
@@ -191,6 +199,10 @@ def node_is_approximatable(bh : BlackHole, node : Node, previous_accel : float, 
         magnitude of acceleration at previous timestep, only needed for dynamic criterion
     use_dynamic_criterion : bool
         determines if geometric criterion (default) or dynamic criterion should be used
+    ALPHA : float
+        accuracy parameter for dynamic criterion
+    THETA_0 : float
+        accuracy parameter for geometric criterion
 
     Returns
     bool
@@ -199,7 +211,7 @@ def node_is_approximatable(bh : BlackHole, node : Node, previous_accel : float, 
     #dynamic criterion
     if use_dynamic_criterion:
         d = np.linalg.norm(bh.displacement(node)) * ureg.kpc
-        return GG * node.mass * ureg.solarmass * (node.crossection * ureg.kpc)**2/(d**4) <= ALPHA * previous_accel
+        return GG * node.mass * ureg.solarmass * (node.crossection * ureg.kpc)**2/(d**4) <= ALPHA * 1e-3 * previous_accel
     
     #geometric criterion
     return (node.crossection / np.linalg.norm(bh.displacement(node))) < THETA_0

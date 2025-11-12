@@ -48,7 +48,7 @@ def test_binary():
     n_snapshots = 100                   # Number of the output snapshots
 
     # Run the simulation here
-    simulation(initial_values, output_dir, Total_time, n_snapshots, delta_t = None, adaptive_dt= True, eta = 0.1, use_tree = True )
+    simulation(initial_values, output_dir, Total_time, n_snapshots, delta_t = None, adaptive_dt= True, leapfrog = True, eta = 0.1, use_tree = True, use_dynamic_criterion = True, ALPHA = 0.1, THETA_0 = 0.1)
 
     # Initialize the AnalyticalCheck object
     analytical_solution = AnalyticalCheck(output_dir)
