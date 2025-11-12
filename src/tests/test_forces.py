@@ -31,11 +31,11 @@ def test_tree():
 
         blackholes = generate_plummer_initial_conditions(100, 20, 20)[0]['data']
 
-        recalculate_dynamics(blackholes, use_tree=False)
+        recalculate_dynamics(blackholes, use_tree=False, use_dynamic_criterion = True, ALPHA = 0.1, THETA_0 = 0.1)
 
         brute_force_accels = np.asarray([bh.acceleration for bh in blackholes])
 
-        recalculate_dynamics(blackholes, use_tree=True)
+        recalculate_dynamics(blackholes, use_tree=True, use_dynamic_criterion= True, ALPHA = 0.1, THETA_0 = 0.1)
 
         tree_accels = np.asarray([bh.acceleration for bh in blackholes])
 

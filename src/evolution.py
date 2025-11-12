@@ -74,7 +74,7 @@ def save_data_pkl(files, filename, path):
             "data" : data
         }, f)
 
-def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True, use_tree = True):
+def update_params(data, tot_time, num_steps, delta_t, path, leapfrog, use_tree, use_dynamic_criterion, ALPHA, THETA_0):
     ''' 
     Carries out the integration for each particle for one time step
     
@@ -86,7 +86,13 @@ def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True, use
                 given by batch = tot_time // (num_steps * delta_t)
     path - string of the common directory, given by the Git(?)
     leapfrog - True if want leapfrog integration, False if want simple Euler integration (default True)
-    
+    use_dynamic_criterion : bool
+        determines if dynamic or geometric criterion is used for node approximation
+    ALPHA : float
+        accuracy parameter for dynamic criterion
+    THETA_0 : float
+        accuracy parameter for geometric criterion
+
     Output:
     None - All output files are saved as picke file
     '''
@@ -97,10 +103,10 @@ def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True, use
     for i, timestep in enumerate(np.arange(0, tot_time, delta_t)): # for each time step, carry out the evolution for all BHs
         if (leapfrog):
             # Leapfrog Integration
-            result = leapfrog_integrator(data, delta_t, timestep, use_tree)
+            result = leapfrog_integrator(data, delta_t, timestep, use_tree, use_dynamic_criterion, ALPHA, THETA_0)
         else:
             # Euler integration
-            result = euler_integrator(data, delta_t, use_tree)
+            result = euler_integrator(data, delta_t, use_tree, use_dynamic_criterion, ALPHA, THETA_0)
         count += 1
         data_lst.append(result)
         if count == num_steps:
@@ -117,7 +123,7 @@ def update_params(data, tot_time, num_steps, delta_t, path, leapfrog = True, use
         save_data_pkl(files, f"data_batch{batch_idx}.pkl", path)
 
 
-def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfrog = True, use_tree = True):
+def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfrog, use_tree, use_dynamic_criterion, ALPHA, THETA_0):
     ''' 
     Carries out the integration for each particle for one time step
     
@@ -129,7 +135,13 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
                 given by batch = tot_time // (num_batches * delta_t)
     path - string of the common directory, given by the Git(?)
     leapfrog - True if want leapfrog integration, False if want simple Euler integration (default True)
-    
+    use_dynamic_criterion : bool
+        determines if dynamic or geometric criterion is used for node approximation
+    ALPHA : float
+        accuracy parameter for dynamic criterion
+    THETA_0 : float
+        accuracy parameter for geometric criterion
+
     Output:
     None - All output files are saved as picke file
     '''
@@ -141,7 +153,7 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
     times = np.zeros(num_steps) * ureg.sec
     # needs to be initialized with units because recalculate_acceleration now assigns units acceleration
 
-    recalculate_dynamics(data, use_tree) # Get acceleration with current position
+    recalculate_dynamics(data, use_tree, use_dynamic_criterion, ALPHA, THETA_0) # Get acceleration with current position
 
     with tqdm(total=tot_time, desc="Simulation Progress") as pbar:
         while running_time.magnitude < tot_time:
@@ -159,10 +171,10 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
 
             if (leapfrog):
                 # Leapfrog Integration
-                result = leapfrog_integrator(data, delta_t, running_time, use_tree)
+                result = leapfrog_integrator(data, delta_t, running_time, use_tree, use_dynamic_criterion, ALPHA, THETA_0)
             else:
                 # Euler integration
-                result = euler_integrator(data, delta_t, use_tree)
+                result = euler_integrator(data, delta_t, use_tree, use_dynamic_criterion, ALPHA, THETA_0)
             running_time += delta_t
             times[count] = running_time
             count += 1
@@ -178,7 +190,7 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
                 count = 0
                 data_lst = []
             
-            recalculate_dynamics(data, use_tree) 
+            recalculate_dynamics(data, use_tree, use_dynamic_criterion, ALPHA, THETA_0) 
             # these need to be done before the next computation of dt (next iteration of the loop)
 
     # Save any remaining timesteps
@@ -188,7 +200,7 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
 
 
 
-def leapfrog_integrator(data, delta_t, timestep, use_tree):
+def leapfrog_integrator(data, delta_t, timestep, use_tree, use_dynamic_criterion : bool, ALPHA, THETA_0):
     """
     Updating position and velocity of BH objects with conserving phase space volume (symplectic integrator).
     
@@ -201,14 +213,20 @@ def leapfrog_integrator(data, delta_t, timestep, use_tree):
     data - list of BH objects
     delta_t - The timestep for each round of update
     time_step - current time step index (to check if acceleration needs recalculation)
-    
+    use_dynamic_criterion : bool
+        determines if dynamic or geometric criterion is used for node approximation
+    ALPHA : float
+        accuracy parameter for dynamic criterion
+    THETA_0 : float
+        accuracy parameter for geometric criterion
+
     Output:
     result - list of Blackhole object
     
     """
     delta_half = delta_t / 2
     if timestep == 0:
-        recalculate_dynamics(data, use_tree) # Get acceleartion with current position
+        recalculate_dynamics(data, use_tree, use_dynamic_criterion, ALPHA, THETA_0) # Get acceleartion with current position
 
     result = []
 
@@ -220,7 +238,7 @@ def leapfrog_integrator(data, delta_t, timestep, use_tree):
     # hence the .magnitude
 
     # Recalculation of the acceleration
-    recalculate_dynamics(data, use_tree)
+    recalculate_dynamics(data, use_tree, use_dynamic_criterion, ALPHA, THETA_0)
 
     # Last Kick
     for BH in data:
@@ -229,7 +247,7 @@ def leapfrog_integrator(data, delta_t, timestep, use_tree):
 
     return result
             
-def euler_integrator(data, delta_t, use_tree):
+def euler_integrator(data, delta_t, use_tree, use_dynamic_criterion, ALPHA, THETA_0):
     """
     Euler integration of the position and velocity according to
     r(t+Delta t) = r(t) + v(t) * Delta t
@@ -238,12 +256,18 @@ def euler_integrator(data, delta_t, use_tree):
     Inputs:
     data - list of BH objects
     delta_t - The timestep for each round of update
+    use_dynamic_criterion : bool
+        determines if dynamic or geometric criterion is used for node approximation
+    ALPHA : float
+        accuracy parameter for dynamic criterion
+    THETA_0 : float
+        accuracy parameter for geometric criterion
     
     Output:
     result - list of Blackhole object
     
     """
-    recalculate_dynamics(data, use_tree)  # provided in Forces.py
+    recalculate_dynamics(data, use_tree, use_dynamic_criterion, ALPHA, THETA_0)  # provided in Forces.py
     result = []
     for BH in data:  # assumes the BH objects are already loaded with initial values
         BH.position += ( (BH.velocity/ KM_PER_KPC) * delta_t ).magnitude # Euler integration (formula given above)
@@ -278,8 +302,8 @@ def comp_adaptive_dt(acc, jerk, snap, eta):
     return dt
 
 
-def simulation(initial_file, output_folder, tot_time, nsteps, delta_t = None, adaptive_dt = False, eta = None, leapfrog = True, 
-               use_tree = True):
+def simulation(initial_file, output_folder, tot_time, nsteps, delta_t, adaptive_dt, eta, leapfrog, 
+               use_tree, use_dynamic_criterion, ALPHA, THETA_0):
     """
     Wrapper Function for the simulation of time evolve N-body Problem
     
@@ -293,6 +317,12 @@ def simulation(initial_file, output_folder, tot_time, nsteps, delta_t = None, ad
     eta: the constant for the adpative timestep formula. Cannot be none if adpative_dt is True. 
     leapfrog: Integration technique. Default to Leap frog, False uses Euler
     use_tree : whether to use the BHT code for force calculation (default True)
+    use_dynamic_criterion : bool
+        determines if dynamic or geometric criterion is used for node approximation
+    ALPHA : float
+        accuracy parameter for dynamic criterion
+    THETA_0 : float
+        accuracy parameter for geometric criterion
     
     Outputs:
         
@@ -306,9 +336,9 @@ def simulation(initial_file, output_folder, tot_time, nsteps, delta_t = None, ad
         if eta is None:
             raise ValueError("Adaptive timestepping (adaptive_dt = True) requires a value of eta to be given.")
         else:
-            update_params_adaptive_timestep(data, tot_time, nsteps, eta, output_folder, leapfrog, use_tree)
+            update_params_adaptive_timestep(data, tot_time, nsteps, eta, output_folder, leapfrog, use_tree, use_dynamic_criterion, ALPHA, THETA_0)
     else:
-        update_params(data, tot_time, nsteps, delta_t, output_folder, leapfrog, use_tree)
+        update_params(data, tot_time, nsteps, delta_t, output_folder, leapfrog, use_tree, use_dynamic_criterion, ALPHA, THETA_0)
 
 
 # print('\nNeed to call the simulation function properly to ensure it works though :)')
