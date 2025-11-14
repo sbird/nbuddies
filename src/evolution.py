@@ -292,7 +292,10 @@ def comp_adaptive_dt(acc, jerk, snap, eta):
     j_mag = np.linalg.norm(jerk)
     s_mag = np.linalg.norm(snap)
 
-    dt = eta / np.sqrt((j_mag / a_mag)**2 + (s_mag / a_mag)) #computes dt 
+    adaptive_factor = np.sqrt((j_mag / a_mag)**2 + (s_mag / a_mag)) 
+    if adaptive_factor < 1.0e-15:   
+        adaptive_factor = 1.0e-15 * ureg('1/s')  # prevent division by zero
+    dt = eta / adaptive_factor #computes dt 
 
     # print("a_mag = ", a_mag)
     # print("j_mag = ", j_mag)
