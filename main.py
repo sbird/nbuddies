@@ -60,7 +60,7 @@ parser.add_argument("--IC_type", choices=["binary", "plummer"], default="plummer
 # Parse the arguments
 args = parser.parse_args()
 
-if args.delta_t is None and not args.adaptive_ts:
+if args.delta_t is None and args.fixed_ts:
     raise("Timestep must be specified if not using adaptive timestep")
 
 R = args.R * ureg('kpc')
@@ -91,8 +91,8 @@ match args.IC_type:
         BHs, _ = generate_binary_ICs(N_BH=2, custom_vals=custom_vals)
         print(
             f"Running {args.name} with: N={custom_vals['N']}, M={custom_vals['mass']}, "
-            f"n_steps={args.n_steps}, adaptive_ts={args.adaptive_ts}, eta={args.eta}, "
-            f"use_leapfrog={args.use_leapfrog}"
+            f"n_steps={args.n_steps}, adaptive_ts={not args.fixed_ts}, eta={args.eta}, "
+            f"use_leapfrog={not args.use_euler}"
         )
 
     case "plummer":
@@ -104,8 +104,8 @@ match args.IC_type:
         )
         print(
             f"Running {args.name} with: N={args.N}, R={args.R}, M={args.M}, "
-            f"M_ratio={args.M_ratio}, n_steps={args.n_steps}, adaptive_ts={args.adaptive_ts}, "
-            f"eta={args.eta}, use_tree={args.use_tree}, use_leapfrog={args.use_leapfrog}"
+            f"M_ratio={args.M_ratio}, n_steps={args.n_steps}, adaptive_ts={not args.fixed_ts}, "
+            f"eta={args.eta}, use_tree={not args.brute_force}, use_leapfrog={not args.use_euler}"
         )
 
     case _:
