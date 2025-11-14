@@ -32,15 +32,15 @@ parser.add_argument("--M_ratio", type=float, help="Set mass ratio between two ty
 
 parser.add_argument("--n_steps", type=int, help="Number of steps for batch saving (default: 10)", default=10)
 
-parser.add_argument("--adaptive_ts", action=argparse.BooleanOptionalAction, 
-                    help="Use adaptive timestep formula (default: True)", default=True)
+parser.add_argument("--fixed_ts", action=argparse.BooleanOptionalAction, 
+                    help="Use fixed timestep", default=False)
 
 parser.add_argument("--delta_t", type=float, help="Set timestep if using fixed timestep", default=None)
 
 parser.add_argument("--eta", type=float, help="Set eta when using adaptive time step (default: 0.1)", default=0.1)
 
-parser.add_argument("--use_tree", action=argparse.BooleanOptionalAction, 
-                    help="Use Barnes Hut algorithm to calculate forces (default: True)", default=True)
+parser.add_argument("--brute_force", action=argparse.BooleanOptionalAction, 
+                    help="Do brute force O(N^2) force calculation", default=False)
 
 parser.add_argument("--use_geometric_criterion", action=argparse.BooleanOptionalAction, 
                     help="Use geometric criterion to determine if nodes of Barnes Hut tree can be approximated as point masses. If false uses dynamic criterion (default: False)", default=False)
@@ -49,8 +49,8 @@ parser.add_argument("--ALPHA", type=float, help="Set accuracy parameter for dyna
 
 parser.add_argument("--THETA_0", type=float, help="Set accuracy parameter for geometric node approximation criterion (default: 0.1)", default=0.1)
 
-parser.add_argument("--use_leapfrog", action=argparse.BooleanOptionalAction, 
-                    help="Use Leap frog integration (default: True). False uses Euler integration", default=True)
+parser.add_argument("--use_euler", action=argparse.BooleanOptionalAction, 
+                    help="Use Euler integration. Default behavior uses Euler integration", default=False)
 
 parser.add_argument("--time", type = float, help="Total simulation time in seconds (default : 5e17)", default=5e17)
 
@@ -60,7 +60,7 @@ parser.add_argument("--IC_type", choices=["binary", "plummer"], default="plummer
 # Parse the arguments
 args = parser.parse_args()
 
-if args.delta_t is None and not args.adaptive_ts:
+if args.delta_t is None and args.fixed_ts:
     raise("Timestep must be specified if not using adaptive timestep")
 
 R = args.R * ureg('kpc')
@@ -91,8 +91,8 @@ match args.IC_type:
         BHs, _ = generate_binary_ICs(N_BH=2, custom_vals=custom_vals)
         print(
             f"Running {args.name} with: N={custom_vals['N']}, M={custom_vals['mass']}, "
-            f"n_steps={args.n_steps}, adaptive_ts={args.adaptive_ts}, eta={args.eta}, "
-            f"use_leapfrog={args.use_leapfrog}"
+            f"n_steps={args.n_steps}, adaptive_ts={not args.fixed_ts}, eta={args.eta}, "
+            f"use_leapfrog={not args.use_euler}"
         )
 
     case "plummer":
@@ -104,8 +104,8 @@ match args.IC_type:
         )
         print(
             f"Running {args.name} with: N={args.N}, R={args.R}, M={args.M}, "
-            f"M_ratio={args.M_ratio}, n_steps={args.n_steps}, adaptive_ts={args.adaptive_ts}, "
-            f"eta={args.eta}, use_tree={args.use_tree}, use_leapfrog={args.use_leapfrog}"
+            f"M_ratio={args.M_ratio}, n_steps={args.n_steps}, adaptive_ts={not args.fixed_ts}, "
+            f"eta={args.eta}, use_tree={not args.brute_force}, use_leapfrog={not args.use_euler}"
         )
 
     case _:
@@ -124,7 +124,7 @@ pkl.dump(BHs, open(data_path+"/ICs.pkl", "wb"))
 # print(f"sim time = {sim_time.to('Myr'):.3} = {sim_time.to('second'):.3}")
 
 simulation(data_path+"/ICs.pkl", data_path, tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, delta_t = args.delta_t,
-           adaptive_dt=args.adaptive_ts, eta=args.eta, leapfrog=args.use_leapfrog, use_tree=args.use_tree,
+           adaptive_dt= not args.fixed_ts, eta=args.eta, leapfrog= not args.use_euler, use_tree=not args.brute_force,
            use_dynamic_criterion= not args.use_geometric_criterion, ALPHA = args.ALPHA, THETA_0 = args.THETA_0)
 
 movie_3D(args.name)
