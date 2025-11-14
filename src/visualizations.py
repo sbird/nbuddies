@@ -185,8 +185,6 @@ def radial_position_plot(sim_name):
             for n in range(N):
                 r_points[n,k] = np.linalg.norm(file["data"][j][n].position)
             t_points[k] = file["time"][j].to('Myr').magnitude
-
-    print(t_points)
     
     #set up cmap
     viridis_dark = colors.LinearSegmentedColormap.from_list('viridis_dark', plt.cm.viridis(np.linspace(0, 0.7, 256))).reversed()
