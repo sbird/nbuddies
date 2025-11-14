@@ -160,7 +160,7 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
             # block to decide the delta_t value for this iteration - 
             delta_t_BH = np.zeros(len(data)) * ureg.s
             for i, BH in enumerate(data):
-                delta_t_BH[i] = comp_adaptive_dt(BH.acceleration, BH.jerk, BH.snap, eta)  # compute adaptive value
+                delta_t_BH[i] = comp_adaptive_dt(BH.acceleration, BH.jerk, BH.snap, eta, tot_time)  # compute adaptive value
             delta_t = np.min(delta_t_BH)   # choose the minimum among all BHs
 
             pbar.update(delta_t.magnitude)
@@ -277,7 +277,7 @@ def euler_integrator(data, delta_t, use_tree, use_dynamic_criterion, ALPHA, THET
 
 
 #Function to compute adaptive timestep
-def comp_adaptive_dt(acc, jerk, snap, eta):
+def comp_adaptive_dt(acc, jerk, snap, eta, tot_time):
     """
     Inputs: acc, jerk, snap, and eta 
     We will need the magnitude for acc, jerk, and snap
@@ -293,9 +293,10 @@ def comp_adaptive_dt(acc, jerk, snap, eta):
     s_mag = np.linalg.norm(snap)
 
     adaptive_factor = np.sqrt((j_mag / a_mag)**2 + (s_mag / a_mag)) 
-    if adaptive_factor < 1.0e-15:   
-        adaptive_factor = 1.0e-15 * ureg('1/s')  # prevent division by zero
-    dt = eta / adaptive_factor #computes dt 
+    if adaptive_factor.m < 1 / tot_time / 1000:  # prevent extremely large timesteps
+        dt = tot_time / 1000
+    else:
+        dt = eta / adaptive_factor #computes dt 
 
     # print("a_mag = ", a_mag)
     # print("j_mag = ", j_mag)
