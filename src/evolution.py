@@ -293,7 +293,7 @@ def comp_adaptive_dt(acc, jerk, snap, eta, tot_time):
     s_mag = np.linalg.norm(snap)
 
     adaptive_factor = np.sqrt((j_mag / a_mag)**2 + (s_mag / a_mag)) 
-    if adaptive_factor.m < 1 / tot_time / 1000:  # prevent extremely large timesteps
+    if adaptive_factor.m < 1 / (tot_time / 1000):  # prevent extremely large timesteps
         dt = tot_time / 1000
     else:
         dt = eta / adaptive_factor #computes dt 
