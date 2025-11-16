@@ -151,6 +151,7 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
     data_lst = [data] # initialized with the starting data, stores the evolved data batch-wise
     running_time = 0 * ureg.sec  # time elapsed in the simulation, will end when running_time == tot_time
     times = np.zeros(num_steps) * ureg.sec
+    delta_t = 0 * ureg.sec
     # needs to be initialized with units because recalculate_acceleration now assigns units acceleration
 
     recalculate_dynamics(data, use_tree, use_dynamic_criterion, ALPHA, THETA_0) # Get acceleration with current position
