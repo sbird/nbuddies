@@ -83,7 +83,7 @@ if args.N > 2:
     t_relax = 0.14*args.N * (R**(3/2)) / (np.log(0.4*args.N) * np.sqrt(GG*M))
     print(t_relax.to("Myr"))
     # t_segregate = 0.1 * t_relax
-    sim_time = args.x_trelax * t_relax
+    sim_time = args.x_time * t_relax
     # sim_time = args.time * ureg('second')
 else:
     t_orbit = 2 * np.pi * np.sqrt((R**3) / (GG * M))
