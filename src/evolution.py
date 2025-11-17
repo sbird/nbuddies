@@ -191,7 +191,7 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
                 count = 0
                 data_lst = []
             
-            recalculate_dynamics(data, use_tree, use_dynamic_criterion, ALPHA, THETA_0) 
+            #recalculate_dynamics(data, use_tree, use_dynamic_criterion, ALPHA, THETA_0) 
             # these need to be done before the next computation of dt (next iteration of the loop)
 
     # Save any remaining timesteps
