@@ -14,12 +14,13 @@ code_subdirectories = np.array([
 output_directories = np.array([
     "data",
     "movie_dump",
-    "visuals"
+    "visuals",
 ])
 
 #Required sundirectories of nbuddies
 required_directories = np.concatenate((output_directories, [
-    "src"
+    "src",
+    "training_data",
 ], "src/" + code_subdirectories))
 
 #Authorized subdirectories of nbuddies
