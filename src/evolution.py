@@ -3,6 +3,7 @@ from .Forces import *
 import os
 import pickle
 import numpy as np
+import copy
 
 KM_PER_KPC = 3.0856776e16 # number of km in kpc for using velocity to update position
 
@@ -108,7 +109,8 @@ def update_params(data, tot_time, num_steps, delta_t, path, leapfrog, use_tree, 
             # Euler integration
             result = euler_integrator(data, delta_t, use_tree, use_dynamic_criterion, ALPHA, THETA_0)
         count += 1
-        data_lst.append(result)
+        # store the updated result after each time step in data_list
+        data_lst.append(copy.deepcopy(result))
         if count == num_steps:
             files = [data_lst, np.arange(count)*delta_t, delta_t, tot_time, num_steps]
             save_data_pkl(files, f'data_batch{batch_idx}.pkl', path)  # saving as a pkl file right now
@@ -179,7 +181,7 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
             running_time += delta_t
             times[count] = running_time
             count += 1
-            data_lst.append(result)
+            data_lst.append(copy.deepcopy(result))
             if count == num_steps:
                 files = [data_lst, times, delta_t, tot_time, num_steps] 
                 # the above way of saving means we are saving the value of timestep in the last simulation of each batch
