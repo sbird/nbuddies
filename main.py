@@ -60,6 +60,8 @@ parser.add_argument('--x_time', type=int, help="Time scaling factor (default: 3)
 parser.add_argument("--IC_type", choices=["binary", "plummer"], default="plummer",
                     help="Choose type of initial condition: 'binary' or 'plummer' (default: plummer)")
 
+parser.add_argument("--seed", type = int, help = "Random seed for the initial conditions", default = 1)
+
 # Parse the arguments
 args = parser.parse_args()
 
@@ -112,6 +114,7 @@ match args.IC_type:
         )
 
     case "plummer":
+        np.random.seed(args.seed)
         BHs, _ = generate_plummer_initial_conditions(
             n_blackholes=args.N,
             initial_mass=(M).magnitude,
