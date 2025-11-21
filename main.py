@@ -1,7 +1,7 @@
 from src.ICs import *
 from src.evolution import simulation
 from src.visualizations import *
-from src.Forces import GG
+from src.Forces import GG_new
 import os
 import argparse
 from pint import UnitRegistry 
@@ -9,10 +9,10 @@ from visualizations_comparisons import movie_3D_comparison
 import pickle as pkl
 import time
 
-ureg = UnitRegistry()
-ureg.define('solarmass = 1.98847e30 * kilogram') 
-G = 6.67430e-11 * ureg.meter**3 / (ureg.kilogram * ureg.second**2) 
-GG = G.to("kiloparsec * kilometer**2 / (solarmass * second**2)") 
+#Removed all ureg usage in this file
+#Gravitational constant in units: kiloparsec * kilometer^2 / (solarmass * second^2)
+#GG_new is already defined in Forces.py as the magnitude without units
+GG = GG_new  # 4.302e-6 kpc * km^2 / (M_sun * s^2)
 
 # Create the parser
 parser = argparse.ArgumentParser(prog="NBuddies", description="Run N-body simulation on group of custom black holes.", 
@@ -70,8 +70,8 @@ start = time.time()
 if args.delta_t is None and args.fixed_ts:
     raise("Timestep must be specified if not using adaptive timestep")
 
-R = args.R * ureg('kpc')
-M = args.M * ureg('solarmass')
+R = args.R #in kpc
+M = args.M #in solar mass
 
 nbuddies_path = os.path.dirname(os.path.realpath(__file__))
 data_path = nbuddies_path+"/data/"+args.name
@@ -82,23 +82,35 @@ if not os.path.exists(data_path):
 
 if args.N > 2:
     #calc relax time
-    t_relax = 0.14*args.N * (R**(3/2)) / (np.log(0.4*args.N) * np.sqrt(GG*M))
-    print(t_relax.to("Myr"))
-    # t_segregate = 0.1 * t_relax
-    sim_time = args.x_time * t_relax
-    # sim_time = args.time * ureg('second')
+    #t_relax = 0.14*N * R^(3/2) / (log(0.4*N) * sqrt(G*M))
+    #Note: sqrt(GG*M) has units sqrt(kpc * km^2 / s^2) = sqrt(kpc) * km/s
+    #R^(3/2) has units kpc^(3/2)
+    #So t_relax has units: kpc^(3/2) / (sqrt(kpc) * km/s) = kpc / (km/s) = kpc*s/km
+    #Need to convert to seconds: multiply by km/kpc = 3.0856776e16
+    t_relax = 0.14 * args.N * (R**(3/2)) / (np.log(0.4*args.N) * np.sqrt(GG*M))
+    t_relax_seconds = t_relax * 3.0856776e16  #convert from kpc/(km/s) to seconds
+    t_relax_myr = t_relax_seconds / 3.15576e13  #convert to Myr for display
+    print(f"Relaxation time: {t_relax_myr:.3f} Myr")
+    sim_time = args.x_time * t_relax_seconds  #in seconds
 else:
+    #t_orbit = 2*pi * sqrt(R^3 / (G*M))
+    #sqrt(R^3 / (G*M)) has units sqrt(kpc^3 / (kpc * km^2/s^2)) = sqrt(kpc^2 * s^2/km^2) = kpc*s/km
+    #Need to convert to seconds: multiply by km/kpc = 3.0856776e16
     t_orbit = 2 * np.pi * np.sqrt((R**3) / (GG * M))
-    sim_time = args.x_time * t_orbit
+    t_orbit_seconds = t_orbit * 3.0856776e16  #convert from kpc/(km/s) to seconds
+    sim_time = args.x_time * t_orbit_seconds  #in seconds
 
-print(f"sim time = {sim_time.to('Myr'):.3} = {sim_time.to('second'):.3}")
+sim_time_myr = sim_time / 3.15576e13  #convert to Myr 
+print(f"Simulation time = {sim_time_myr:.3f} Myr = {sim_time:.3e} seconds")
 
 match args.IC_type:
     case "binary":
         if args.N != 2:
             raise ValueError(f"Binary initial conditions require N=2, but got N={args.N}")
         # Make binary ICs
-        vel = np.sqrt( GG * M / (4 * R)  ) / (ureg.km / ureg.s)
+        # vel = sqrt(G*M / (4*R)) in km/s
+        # sqrt(G*M / R) has units sqrt(kpc * km^2/s^2 / kpc) = km/s
+        vel = np.sqrt(GG * M / (4 * R))  #in km/s
         custom_vals = {
             'N': args.N,
             'mass': np.array([args.M, args.M]),
@@ -117,10 +129,10 @@ match args.IC_type:
         np.random.seed(args.seed)
         BHs, _ = generate_plummer_initial_conditions(
             n_blackholes=args.N,
-            initial_mass=(M).magnitude,
-            scale=R.magnitude,
+            initial_mass=M,
+            scale=R,
             ratio=args.M_ratio
-        )
+        ) #removed .magnitude
         print(
             f"Running {args.name} with: N={args.N}, R={args.R}, M={args.M}, "
             f"M_ratio={args.M_ratio}, n_steps={args.n_steps}, adaptive_ts={not args.fixed_ts}, "
@@ -136,7 +148,7 @@ pkl.dump(BHs, open(data_path+"/ICs.pkl", "wb"))
 
 # print(f"sim time = {sim_time.to('Myr'):.3} = {sim_time.to('second'):.3}")
 
-simulation(data_path+"/ICs.pkl", data_path, tot_time=sim_time.to('second').magnitude, nsteps=args.n_steps, delta_t = args.delta_t,
+simulation(data_path+"/ICs.pkl", data_path, tot_time=sim_time, nsteps=args.n_steps, delta_t = args.delta_t,
            adaptive_dt= not args.fixed_ts, eta=args.eta, leapfrog= not args.use_euler, use_tree=not args.brute_force,
            use_dynamic_criterion= not args.use_geometric_criterion, ALPHA = args.ALPHA, THETA_0 = args.THETA_0)
 

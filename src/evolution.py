@@ -148,27 +148,33 @@ def update_params_adaptive_timestep(data, tot_time, num_steps, eta, path, leapfr
     None - All output files are saved as picke file
     '''
 
+
     batch_idx = 0
     count = 0 # goes from 0 to num_steps - 1, used to check when to save the data  
     data_lst = [data] # initialized with the starting data, stores the evolved data batch-wise
-    running_time = 0 * ureg.sec  # time elapsed in the simulation, will end when running_time == tot_time
-    times = np.zeros(num_steps) * ureg.sec
-    delta_t = 0 * ureg.sec
+    running_time = 0   # time elapsed in the simulation, will end when running_time == tot_time
+    times = np.zeros(num_steps)
+    delta_t = 0 
     # needs to be initialized with units because recalculate_acceleration now assigns units acceleration
+    #Removed ureg.s from running_time, times, and delta_t
+
 
     recalculate_dynamics(data, use_tree, use_dynamic_criterion, ALPHA, THETA_0) # Get acceleration with current position
 
     with tqdm(total=tot_time, desc="Simulation Progress") as pbar:
-        while running_time.magnitude < tot_time:
+        while running_time < tot_time:
             # block to decide the delta_t value for this iteration - 
-            delta_t_BH = np.zeros(len(data)) * ureg.s
+            delta_t_BH = np.zeros(len(data)) #Removed ureg.s 
             for i, BH in enumerate(data):
                 delta_t_BH[i] = comp_adaptive_dt(BH.acceleration, BH.jerk, BH.snap, eta, tot_time)  # compute adaptive value
             delta_t = np.min(delta_t_BH)   # choose the minimum among all BHs
 
-            pbar.update(delta_t.magnitude)
-            pbar.set_postfix({"time_elapsed": f"{running_time.magnitude / tot_time * 100:.2f}%", "Δt": f"{delta_t.to('Myr'):.2e}"})
+            pbar.update(delta_t)
 
+             # Convert delta_t to Myr for display (1 Myr = 3.15576e13 seconds)
+            delta_t_myr = delta_t / 3.15576e13
+            pbar.set_postfix({"time_elapsed": f"{running_time / tot_time * 100:.2f}%", "Δt": f"{delta_t_myr:.2e} Myr"})
+            #Removed pint associated .magnitude
             # print(f"time_elapsed: {running_time.magnitude/tot_time*100:.2f}% of tot_time; delta_t for this iteration: {delta_t.to('Myr')}")
             # this statement can be useful to keep a check on how fast the simulation is proceeding for a given eta
 
@@ -235,19 +241,19 @@ def leapfrog_integrator(data, delta_t, timestep, use_tree, use_dynamic_criterion
 
     # First Kick and Drift
     for BH in data:
-        BH.velocity += (BH.acceleration * delta_half).magnitude # Update the velocity with half of timestep
-        BH.position += ( (BH.velocity/ KM_PER_KPC) * delta_t ).magnitude # Update the position with the new velocity and with full timestep
+        BH.velocity += BH.acceleration * delta_half # Update the velocity with half of timestep
+        BH.position +=  (BH.velocity/ KM_PER_KPC) * delta_t  # Update the position with the new velocity and with full timestep
     # need to update velocity and position without units in order to keep it compatible with the rest of the code
-    # hence the .magnitude
+    # Removed pint associated .magnitude
 
     # Recalculation of the acceleration
     recalculate_dynamics(data, use_tree, use_dynamic_criterion, ALPHA, THETA_0)
 
     # Last Kick
     for BH in data:
-        BH.velocity += (BH.acceleration * delta_half).magnitude # Update the velocity with half of timestep and updated acceleration
+        BH.velocity += BH.acceleration * delta_half# Update the velocity with half of timestep and updated acceleration
         result.append(BH.copy())
-
+         # Removed pint associated .magnitude
     return result
             
 def euler_integrator(data, delta_t, use_tree, use_dynamic_criterion, ALPHA, THETA_0):
@@ -273,12 +279,12 @@ def euler_integrator(data, delta_t, use_tree, use_dynamic_criterion, ALPHA, THET
     recalculate_dynamics(data, use_tree, use_dynamic_criterion, ALPHA, THETA_0)  # provided in Forces.py
     result = []
     for BH in data:  # assumes the BH objects are already loaded with initial values
-        BH.position += ( (BH.velocity/ KM_PER_KPC) * delta_t ).magnitude # Euler integration (formula given above)
-        BH.velocity += (BH.acceleration * delta_t).magnitude # Euler integration (formula given above)
+        BH.position +=  (BH.velocity/ KM_PER_KPC) * delta_t  # Euler integration (formula given above)
+        BH.velocity += BH.acceleration * delta_t # Euler integration (formula given above)
+        # Removed pint associated .magnitude
         result.append(BH.copy())
     return result
-
-
+ 
 #Function to compute adaptive timestep
 def comp_adaptive_dt(acc, jerk, snap, eta, tot_time):
     """
@@ -297,7 +303,7 @@ def comp_adaptive_dt(acc, jerk, snap, eta, tot_time):
 
     adaptive_factor = np.sqrt((j_mag / a_mag)**2 + (s_mag / a_mag)) 
     if adaptive_factor.m < 1 / (tot_time / 1000):  # prevent extremely large timesteps
-        dt = (tot_time / 1000) * ureg.s
+        dt = (tot_time / 1000)  #in seconds but removed ureg.s
     else:
         dt = eta / adaptive_factor #computes dt 
 

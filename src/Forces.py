@@ -1,22 +1,11 @@
-
 #N-Body Gravitational Forces Calculations
 
 import numpy as np
-from pint import UnitRegistry 
 from .BlackHoles_Struct import BlackHole
 from .gravitree import Node, build_tree
 
-"""
-Initialize unit registry and define units
-We decide that the gravitational constant units will be:
-    kiloparsec * kilometer^2 / (solarmass * second^2)
-Therefore acceleration units of kilometer^2 / (kiloparsec * second^2) (messy for timestep team)
-We convert acceleration to km/s^2
-"""
-ureg = UnitRegistry()
-ureg.define('solarmass = 1.98847e30 * kilogram') 
-G = 6.67430e-11 * ureg.meter**3 / (ureg.kilogram * ureg.second**2) 
-GG = G.to("kiloparsec * kilometer**2 / (solarmass * second**2)") 
+# Gravitational constant (magnitude only, no units)
+GG_new = 4.302113488372941e-06  # kpc * km^2 / (M_sun * s^2)
 
 def _comp_acceleration(BH_i : BlackHole, BH_j : BlackHole):
     """ 
@@ -29,12 +18,16 @@ def _comp_acceleration(BH_i : BlackHole, BH_j : BlackHole):
     - Calculate the acceleration using our gravitational constant and converts to km/s**2
     Returns np.ndarray with acceleration vector for BH_i in km/s**2
     """
-    pos_vec = BH_i.displacement(BH_j) * ureg.kpc
+
+    pos_vec = BH_i.displacement(BH_j) 
     mag_vec = np.linalg.norm(pos_vec) 
     assert mag_vec != 0, "BHs cannot be at the same position - division by zero" #Checks that the magnitude vector is not zero (i.e. same BHs)
-    accel = GG * BH_j.mass * ureg.solarmass * (pos_vec)/(mag_vec)**3 
-    accel = accel.to("km/s**2")
-    return accel            #Converts acceleration to km/s^2
+    accel = GG_new * BH_j.mass * (pos_vec)/(mag_vec)**3 
+
+    accel *= 3.24078e-17  # conversion factor of km/kpc to result in an accel in km/s^2
+    # accel = accel.to("km/s**2")  # converts acceleration to km/s^2
+
+    return accel           
 
 def _comp_jerk(BH_i : BlackHole, BH_j : BlackHole):
     """
@@ -42,14 +35,17 @@ def _comp_jerk(BH_i : BlackHole, BH_j : BlackHole):
     j_ij = G * m_j [(v_ij/ r_ij **3) - 3(r_ij dot v_ij)*r_ij/ r**5]
     Returns jerk in units units of km/s^3 
     """
-    r_ij = BH_i.displacement(BH_j) * ureg.kpc        # Calls dposition vector function function from BlackHoles_Struct.py
-    v_ij = (BH_j.velocity - BH_i.velocity) * ureg('km/s')    # Difference in velocities (make sure that it is j minus i for calculation on i)
+    r_ij = BH_i.displacement(BH_j)         # Calls dposition vector function function from BlackHoles_Struct.py
+    v_ij = (BH_j.velocity - BH_i.velocity)    # Difference in velocities (make sure that it is j minus i for calculation on i)
     r = np.linalg.norm(r_ij) #Magnitude 
     assert r != 0, "Black holes cannot be the same" #If the BHs are the same  
     rdotv = np.dot(r_ij, v_ij) #Dot product of position and velocity vectors
-    jerk = GG * BH_j.mass * ureg.solarmass * (v_ij / r**3 - 3 * rdotv * r_ij / r**5) 
-    return jerk.to("km/s^3")
+    jerk = GG_new * BH_j.mass * (v_ij / r**3 - 3 * rdotv * r_ij / r**5) 
 
+    jerk *= 1.0502655e-33   # conversion factor of (km/kpc)^2 to result in a snap in km/s^3
+    # return jerk.to("km/s^3")
+    
+    return jerk 
 
 #Function to compute snap from jerk
 def _comp_snap(BH_i: BlackHole, BH_j: BlackHole, previous_accel_i : list[float]):
@@ -75,15 +71,13 @@ def _comp_snap(BH_i: BlackHole, BH_j: BlackHole, previous_accel_i : list[float])
         snap of BH_i due to BH_j
     """
 
-    #in first time step accels may not have units, handles that here
-    if not hasattr(BH_j.acceleration, 'units'):
-        BH_j.acceleration = BH_j.acceleration * ureg('km/s^2')
-    if not hasattr(previous_accel_i, 'units'):
-        previous_accel_i = previous_accel_i * ureg('km/s^2')
+    
 
-    r_ij = BH_i.displacement(BH_j) * ureg.kpc   #Calls position vector function from BlackHoles_Struct.py
-    v_ij = (BH_j.velocity - BH_i.velocity) * ureg('km/s') #Difference in velocities 
+    r_ij = BH_i.displacement(BH_j)   #Calls position vector function from BlackHoles_Struct.py
+    v_ij = (BH_j.velocity - BH_i.velocity)  #Difference in velocities 
     a_ij = BH_j.acceleration - previous_accel_i #Difference in accelerations
+    
+    
 
     r = np.linalg.norm(r_ij) #Magnitude 
     assert r != 0, "Black holes cannot be the same" #If the BHs are the same  
@@ -92,11 +86,15 @@ def _comp_snap(BH_i: BlackHole, BH_j: BlackHole, previous_accel_i : list[float])
     v2 = np.dot(v_ij, v_ij) 
     rdota = np.dot(r_ij, a_ij)#Dot product of position and acceleration vectors
 
-    snap = GG * BH_j.mass * ureg.solarmass * (a_ij / r**3 
+    km_by_kpc = 3.24078e-17
+
+    snap = GG_new * BH_j.mass * (a_ij / r**3 * km_by_kpc
                                               - 6 * rdotv * v_ij / r**5  
-                                              - 3 * (v2 + rdota) * r_ij / r**5  
+                                              - 3 * (v2 + rdota * km_by_kpc) * r_ij / r**5  
                                               + 15 * (rdotv**2) * r_ij / r**7 )
-    return snap.to('km/s^4')
+    snap *= km_by_kpc**3
+
+    return snap 
 
 def recalculate_dynamics(BHs: list[BlackHole], use_tree : bool, use_dynamic_criterion : bool, ALPHA : float, THETA_0 : float):
     """
@@ -210,8 +208,10 @@ def node_is_approximatable(bh : BlackHole, node : Node, previous_accel : float, 
     """
     #dynamic criterion
     if use_dynamic_criterion:
-        d = np.linalg.norm(bh.displacement(node)) * ureg.kpc
-        return GG * node.mass * ureg.solarmass * (node.crossection * ureg.kpc)**2/(d**4) <= ALPHA * 1e-3 * previous_accel
+        d = np.linalg.norm(bh.displacement(node))  # in kpc
+        #GG_new is in kpc * km^2 / (M_sun * s^2)
+        #This returns a dimensionless comparison
+        return GG_new * node.mass * (node.crossection)**2 / (d**4) <= ALPHA * 1e-3 * previous_accel
     
     #geometric criterion
     return (node.crossection / np.linalg.norm(bh.displacement(node))) < THETA_0
