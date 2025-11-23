@@ -109,7 +109,9 @@ def movie_3D(sim_name : str, tail_length: int = 10, tot_nstep_eta = None):
         ax.set_ylim( - max_range/2, max_range/2)
         ax.set_zlim( - max_range/2, max_range/2)
 
-        ax.set_title(f"t={time.to('Myr'):.3}")
+         #Convert time from seconds to Myr (1 Myr = 3.15576e13 seconds) without pint
+        time_myr = time / 3.15576e13
+        ax.set_title(f"t={time_myr:.3f} Myr")
         
         plt.tight_layout()
         #Save current frame as png
@@ -184,7 +186,8 @@ def radial_position_plot(sim_name):
             k = i*n_batch + j
             for n in range(N):
                 r_points[n,k] = np.linalg.norm(file["data"][j][n].position)
-            t_points[k] = file["time"][j].to('Myr').magnitude
+            # Convert time from seconds to Myr (1 Myr = 3.15576e13 seconds) without using pint
+            t_points[k] = file["time"][j] / 3.15576e13
     
     #set up cmap
     viridis_dark = colors.LinearSegmentedColormap.from_list('viridis_dark', plt.cm.viridis(np.linspace(0, 0.7, 256))).reversed()
