@@ -1,6 +1,6 @@
 #N-Body Data Structure
-import warnings
-from pint import UnitStrippedWarning
+
+#Removed pint unit warning 
 import numpy as np
 
 class BlackHole():
@@ -36,15 +36,13 @@ class BlackHole():
         assert len(snap) == 3, "Snap must be a 3D vector"
        
         self.mass = mass 
+        self.position = np.asarray(position) 
+        self.velocity = np.asarray(velocity) 
+        self.acceleration = np.asarray(acceleration)
+        self.jerk = np.asarray(jerk)
+        self.snap = np.asarray(snap)
 
-        with warnings.catch_warnings():
-            #suppress unit stripping warning here.
-            warnings.simplefilter("ignore", category=UnitStrippedWarning)
-            self.position = np.asarray(position) 
-            self.velocity = np.asarray(velocity) 
-            self.acceleration = np.asarray(acceleration)
-            self.jerk = np.asarray(jerk)
-            self.snap = np.asarray(snap)
+        #Removed unit stripping warning 
 
     def displacement(self, other):
         """
