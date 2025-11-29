@@ -63,10 +63,13 @@ if args.time is None:
     N_ave = 0.5 * (args.N_max + args.N_min)
     R_ave = 0.5 * (args.R_max + args.R_min)
     M_ave = 0.5 * (args.M_max + args.M_min)
-    t_relax = 0.14 * N_ave * (R_ave**(3/2)) / (np.log(0.4*N_ave) * np.sqrt(GG*M_ave))
+    kpc_per_km = 3.0856775814671916e16
+    t_relax = 0.14 * N_ave * (R_ave**(3/2)) / (np.log(0.4*N_ave) * np.sqrt(GG*M_ave)) * kpc_per_km
     sim_time = 3*t_relax
 else:
     sim_time = args.time
+
+print(sim_time)
 
 def _find_last_batch_num(sim_name) -> int:
     """
@@ -124,9 +127,9 @@ for n in range(args.N):
         dataset["ICs"] = np.append(dataset["ICs"], BHs)
     
     if len(dataset["Final_Data"]) == 0:
-        dataset["Final_Data"] = np.asarray([data])
+        dataset["Final_Data"] = np.asarray([{"data": data}])
     else:
-        dataset["Final_Data"] = np.append(dataset["Final_Data"], data)
+        dataset["Final_Data"] = np.append(dataset["Final_Data"], {"data": data})
     
     dataset["Ns"] = np.append(dataset["Ns"], Ns[n])
     dataset["Ms"] = np.append(dataset["Ms"], Ms[n])
@@ -134,5 +137,3 @@ for n in range(args.N):
 
     with open(dataset_path + "/" + args.Name + ".pkl", 'wb') as f:
         pkl.dump(dataset, f)
-
-
